@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="vi">
-<link rel="icon" type="image/png" href="logo5.png">
+<head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Phúc Tea – Data Core System</title>
@@ -488,9 +488,7 @@ tr:hover td { background: var(--gold-l); }
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="logo-badge">
-       <div class="logo-icon">
-    <img src="logo1.png" alt="Logo" style="width: 100%; height: auto;">
-</div>
+        <div class="logo-icon">🍵</div>
         <div class="logo-text">
           <div class="logo-title">Phúc Tea</div>
           <div class="logo-sub">Data Core System</div>
@@ -2138,10 +2136,14 @@ async function runForecastUI() {
           return;
         }
 
-        // Expand BTP → raw ingredients
+        // Expand BTP -> raw NVL: ratio = ingredientQtyPerBatch / btpBatchSize
+        // E.g. BTP01 batch=5500ml, uses 5000g NVL → ratio=5000/5500
+        // Product uses 180ml BTP01 → rawQty = 180 * (5000/5500) = 163.6g
+        var batchSize = btpRecipe.batchSize || 1;
         btpRecipe.ingredients.forEach(function(rawIng) {
-          // rawIng.qty is per 1 unit of BTP
-          const rawQty = btpItem.totalQty * rawIng.qty;
+          var qtyPerBatch = rawIng.qtyPerBatch || rawIng.qty || 0;
+          var ratio = batchSize > 0 ? (qtyPerBatch / batchSize) : 0;
+          var rawQty = btpItem.totalQty * ratio;
           if (!ingredientForecast[rawIng.code]) {
             ingredientForecast[rawIng.code] = { code: rawIng.code, name: rawIng.name, unit: rawIng.unit, totalQty: 0, totalCost: 0, isBTP: false };
           }
@@ -2205,7 +2207,7 @@ async function runForecastUI() {
           '<span class="card-icon">📦</span>' +
           '<div>' +
             '<div class="card-title">Du bao nhu cau NVL — ' + days + ' ngay toi</div>' +
-            '<div class="card-subtitle">Mode: <strong>' + modeLabel + '</strong> · ' + data.length + ' dong ban hang</div>' +
+            '<div class="card-subtitle">Mode: <strong>' + modeLabel + '</strong> · ' + data.length + ' ban ghi · ' + Object.keys(productTotals).length + ' san pham</div>' +
           '</div>' +
         '</div>' +
         '<div class="card-body">' + forecastRows + '</div>' +
