@@ -814,12 +814,12 @@ tr:hover td { background: var(--gold-l); }
     <div class="page" id="page-ai">
       <div class="page-header">
         <h1>🤖 AI Analysis</h1>
-        <p>Phân tích chi phí thông minh bằng <strong>Gemini AI</strong> — chạy thủ công hoặc tự động hàng ngày</p>
+        <p>Phân tích chi phí thông minh bằng <strong>Claude AI</strong> — chạy thủ công hoặc tự động hàng ngày</p>
       </div>
 
       <div class="flex gap-3 mb-6">
         <button class="btn btn-primary" onclick="runAIAnalysisUI()">
-          ✨ Chạy phân tích Gemini AI ngay
+          🤖 Chạy phân tích Claude AI ngay
         </button>
         <button class="btn btn-secondary" onclick="scheduleAI()">
           🕐 Tự động hàng ngày
@@ -919,13 +919,13 @@ tr:hover td { background: var(--gold-l); }
         <div class="card settings-card">
           <div class="card-header">
             <span class="card-icon">✨</span>
-            <div class="card-title">Gemini API</div>
+            <div class="card-title">Anthropic API (Claude)</div>
           </div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">Gemini API Key</label>
-              <input type="password" class="form-input" id="settingsOpenAI" placeholder="AIza...">
-              <div class="text-xs text-muted mt-4" style="margin-top:6px">⚠️ Key được lưu trong localStorage · Lấy tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a></div>
+              <label class="form-label">Anthropic API Key</label>
+              <input type="password" class="form-input" id="settingsOpenAI" placeholder="sk-ant-...">
+              <div class="text-xs text-muted mt-4" style="margin-top:6px">⚠️ Key được lưu trong localStorage · Lấy tại <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></div>
             </div>
           </div>
         </div>
@@ -948,7 +948,7 @@ tr:hover td { background: var(--gold-l); }
               <li>Vào Extensions → Apps Script → Dán nội dung file <strong>Code.gs</strong></li>
               <li>Deploy → New deployment → Web App → Anyone → Copy URL</li>
               <li>Dán URL vào ô "Apps Script Web App URL" phía trên</li>
-              <li>Nhập <strong>Gemini API Key</strong> để dùng AI — lấy miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a></li>
+              <li>Nhập <strong>Anthropic API Key</strong> để dùng AI — lấy miễn phí tại <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></li>
               <li>Bấm <strong>Lưu cài đặt</strong> và <strong>Kiểm tra kết nối</strong></li>
             </ol>
           </div>
@@ -1375,45 +1375,56 @@ async function handleImageOCR(input) {
   const file = input.files[0];
   if (!file) return;
   const key = state.settings.openaiKey;
-  if (!key) { document.getElementById('ocrStatus').innerHTML = '<div class="alert alert-warning">⚠️ Cần Gemini API Key trong Cài đặt</div>'; return; }
+  if (!key) {
+    document.getElementById('ocrStatus').innerHTML =
+      '<div class="alert alert-warning">Can Anthropic API Key trong Cai dat</div>';
+    return;
+  }
 
-  document.getElementById('ocrStatus').innerHTML = '<div class="loader"><div class="spinner"></div> Đang OCR ảnh bằng Gemini...</div>';
+  document.getElementById('ocrStatus').innerHTML =
+    '<div class="loader"><div class="spinner"></div> Dang OCR anh bang Claude AI...</div>';
 
   const reader = new FileReader();
-  reader.onload = async (e) => {
+  reader.onload = async function(e) {
     const base64 = e.target.result.split(',')[1];
     const mimeType = file.type || 'image/jpeg';
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
-      const res = await fetch(url, {
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [
-              { inline_data: { mime_type: mimeType, data: base64 } },
-              { text: 'Trích xuất danh sách nguyên liệu từ ảnh công thức này. Mỗi dòng theo format: "Tên nguyên liệu - Số lượng Đơn vị". Chỉ trả về danh sách, không có gì khác.' }
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 500,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+              { type: 'text', text: 'Trich xuat danh sach nguyen lieu tu anh cong thuc nay. Moi dong theo format: "Ten nguyen lieu - So luong Don vi". Chi tra ve danh sach, khong co gi khac.' }
             ]
-          }],
-          generationConfig: { maxOutputTokens: 500 }
+          }]
         })
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const text = (data.content && data.content[0] && data.content[0].text) || '';
       document.getElementById('recipeText').value = text;
-      document.getElementById('ocrStatus').innerHTML = '<div class="alert alert-success">✅ OCR thành công! Đã điền vào ô nhập công thức.</div>';
-      switchInputTab('text', document.querySelectorAll('.tab-btn')[1]);
+      document.getElementById('ocrStatus').innerHTML =
+        '<div class="alert alert-success">OCR thanh cong! Da dien vao o nhap cong thuc.</div>';
+      const tabs = document.querySelectorAll('.tab-btn');
+      if (tabs[1]) { tabs[1].click(); }
     } catch(err) {
-      document.getElementById('ocrStatus').innerHTML = '<div class="alert alert-error">❌ OCR thất bại: ' + err.message + '</div>';
+      document.getElementById('ocrStatus').innerHTML =
+        '<div class="alert alert-error">OCR that bai: ' + err.message + '</div>';
     }
   };
   reader.readAsDataURL(file);
 }
 
-// ============================================================
-// INGREDIENTS
-// ============================================================
 async function loadIngredients() {
   document.getElementById('ingredientsTableBody').innerHTML =
     '<tr><td colspan="6"><div class="loader"><div class="spinner"></div> Đang tải...</div></td></tr>';
@@ -1481,16 +1492,21 @@ async function saveIngredient() {
 // ============================================================
 // AI ANALYSIS
 // ============================================================
-async function callGemini(prompt) {
-  const key = state.settings.openaiKey;
-  if (!key) throw new Error('Chua cau hinh Gemini API Key. Vao Cai dat de nhap.');
-  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key;
-  const res = await fetch(url, {
+async function callClaude(prompt) {
+  const key = state.settings.openaiKey; // reusing same localStorage key
+  if (!key) throw new Error('Chua cau hinh Anthropic API Key. Vao Cai dat de nhap.');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
     body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0.7, maxOutputTokens: 1000 }
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }]
     })
   });
   if (!res.ok) {
@@ -1498,32 +1514,31 @@ async function callGemini(prompt) {
     throw new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + res.status));
   }
   const data = await res.json();
-  const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-  return (parts && parts[0] && parts[0].text) || '';
+  return (data.content && data.content[0] && data.content[0].text) || '';
 }
 
 async function runAIAnalysisUI() {
   const key = state.settings.openaiKey;
   if (!key) {
     document.getElementById('aiResultPanel').innerHTML =
-      '<div class="alert alert-warning">Cần nhập Gemini API Key trong Cài đặt. Lấy miễn phí tại: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a></div>';
+      '<div class="alert alert-warning">Can nhap Anthropic API Key trong Cai dat. Lay tai: <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></div>';
     return;
   }
 
   if (!state.products.length) {
-    document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Đang tải dữ liệu sản phẩm...';
+    document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Dang tai du lieu san pham...';
     try {
       const res = await callAppsScript({ action: 'getAllProductCosts' });
       if (res.data) state.products = res.data;
     } catch(e) {}
   }
 
-  document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Gemini đang phân tích...';
+  document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Claude dang phan tich...';
   document.getElementById('aiResultPanel').innerHTML =
     '<div class="ai-panel">' +
     '<div class="loader" style="color:rgba(255,255,255,0.7)">' +
     '<div class="spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:var(--gold)"></div>' +
-    ' Gemini AI đang phân tích dữ liệu chi phí Phúc Tea...' +
+    ' Claude AI dang phan tich du lieu chi phi Phuc Tea...' +
     '</div></div>';
 
   try {
@@ -1546,12 +1561,11 @@ async function runAIAnalysisUI() {
       + 'Tong san pham: ' + prods.length + '. '
       + 'COGs trung binh: ' + (avgCogs * 100).toFixed(1) + '%. '
       + 'Top 10 gia von cao: ' + topLines + '. '
-      + 'Yeu cau: Tra ve JSON THUAN TUY, KHONG co markdown, KHONG co backtick, KHONG co gi khac ngoai JSON. '
-      + 'Format chinh xac: {"insight":"Nhan dinh tinh hinh chi phi...","recommendation":"De xuat cai thien...","action":"Hanh dong uu tien..."}';
+      + 'Yeu cau: Tra ve JSON THUAN TUY, KHONG co markdown, KHONG co gi khac ngoai JSON. '
+      + 'Format chinh xac: {"insight":"Nhan dinh tinh hinh chi phi hien tai (2-3 cau, dung tieng Viet co dau)...","recommendation":"De xuat cai thien cu the (2-3 cau)...","action":"Hanh dong uu tien can lam ngay (1-2 cau)..."}';
 
-    const raw = await callGemini(prompt);
+    const raw = await callClaude(prompt);
     let text = raw.trim();
-    // Remove markdown code blocks if present
     text = text.replace(/```[\w]*/g, '').replace(/```/g, '').trim();
     const m = text.match(/\{[\s\S]*\}/);
     if (m) text = m[0];
@@ -1565,31 +1579,31 @@ async function runAIAnalysisUI() {
     document.getElementById('aiResultPanel').innerHTML =
       '<div class="ai-panel">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">' +
-          '<div style="font-size:17px;font-weight:800;color:white">✨ Gemini AI — Phân tích chi phí</div>' +
-          '<div style="font-size:11px;color:var(--gold-m)">' + now + ' · ' + prods.length + ' sản phẩm · Mode ' + modeName + '</div>' +
+          '<div style="font-size:17px;font-weight:800;color:white">🤖 Claude AI — Phan tich chi phi</div>' +
+          '<div style="font-size:11px;color:var(--gold-m)">' + now + ' · ' + prods.length + ' san pham · Mode ' + modeName + '</div>' +
         '</div>' +
         '<div class="ai-section">' +
-          '<div class="ai-section-label">💡 Nhận định (Insight)</div>' +
+          '<div class="ai-section-label">💡 Nhan dinh (Insight)</div>' +
           '<div class="ai-section-content">' + (analysis.insight || '—') + '</div>' +
         '</div>' +
         '<div class="ai-section">' +
-          '<div class="ai-section-label">🎯 Đề xuất (Recommendation)</div>' +
+          '<div class="ai-section-label">🎯 De xuat (Recommendation)</div>' +
           '<div class="ai-section-content">' + (analysis.recommendation || '—') + '</div>' +
         '</div>' +
         '<div class="ai-section">' +
-          '<div class="ai-section-label">⚡ Hành động ngay (Action)</div>' +
+          '<div class="ai-section-label">⚡ Hanh dong ngay (Action)</div>' +
           '<div class="ai-section-content">' + (analysis.action || '—') + '</div>' +
         '</div>' +
       '</div>';
   } catch(e) {
     document.getElementById('aiStatus').innerHTML = '';
     document.getElementById('aiResultPanel').innerHTML =
-      '<div class="alert alert-error">❌ Gemini lỗi: ' + e.message + '</div>';
+      '<div class="alert alert-error">❌ Claude AI loi: ' + e.message + '</div>';
   }
 }
 
 function scheduleAI() {
-  alert('💡 Để chạy AI tự động hàng ngày:\n\nVì Gemini chạy từ trình duyệt, hãy:\n1. Mở trang này vào 8:00 sáng mỗi ngày\n2. Bấm "Chạy phân tích AI ngay"\n\nHoặc tạo Google Apps Script trigger gọi Gemini API với key của bạn.');
+  alert('💡 Để chạy AI tự động hàng ngày:\n\nVì Gemini chạy từ trình duyệt, hãy:\n1. Mở trang này vào 8:00 sáng mỗi ngày\n2. Bấm "Chạy phân tích AI ngay"\n\nHoặc tạo Google Apps Script trigger gọi Anthropic API (Claude) với key của bạn.');
 }
 
 // ============================================================
@@ -1706,18 +1720,18 @@ async function runForecastUI() {
   if (jsonText) {
     try { data = JSON.parse(jsonText); }
     catch(e) {
-      document.getElementById('forecastResult').innerHTML = '<div class="alert alert-error">❌ JSON không hợp lệ: ' + e.message + '</div>';
+      document.getElementById('forecastResult').innerHTML =
+        '<div class="alert alert-error">JSON không hợp lệ: ' + e.message + '</div>';
       return;
     }
   }
 
   // Priority 2: Excel file parsed data
-  if (!data.length && salesData.length) {
-    data = salesData;
-  }
+  if (!data.length && salesData.length) data = salesData;
 
   if (!data || !data.length) {
-    document.getElementById('forecastResult').innerHTML = '<div class="alert alert-warning">⚠️ Chưa có dữ liệu bán hàng. Vui lòng upload file Excel từ IPOS hoặc dán JSON.</div>';
+    document.getElementById('forecastResult').innerHTML =
+      '<div class="alert alert-warning">Chưa có dữ liệu bán hàng. Vui lòng upload file Excel từ IPOS hoặc dán JSON.</div>';
     return;
   }
 
@@ -1728,62 +1742,109 @@ async function runForecastUI() {
     '<div class="loader"><div class="spinner"></div> Đang tính...</div>';
 
   try {
-    const res = await callAppsScript({ action: 'generateForecast', salesData: data, days });
-    if (res.error) throw new Error(res.error);
+    // ── Client-side forecast: load recipes then expand locally ──
+    // Step 1: get recipes from Apps Script (small payload, no problem)
+    const recipesRes = await callAppsScript({ action: 'getRecipes' });
+    const ingRes = await callAppsScript({ action: 'getIngredients' });
 
-    // Summary
-    document.getElementById('forecastSummary').querySelector('.card-body').innerHTML = `
-      <div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px">
-        <div class="stat-card green" style="padding:12px">
-          <div class="stat-label">Sản phẩm</div>
-          <div class="stat-value" style="font-size:20px">${res.productCount}</div>
-        </div>
-        <div class="stat-card yellow" style="padding:12px">
-          <div class="stat-label">Dự báo ${days} ngày</div>
-          <div class="stat-value" style="font-size:20px">${res.ingredientForecast.length}</div>
-          <div class="stat-sub">loại NVL</div>
-        </div>
-      </div>
-      <div style="margin-top:12px;padding:12px;background:var(--green-100);border-radius:8px">
-        <div style="font-size:11px;font-weight:700;color:var(--green-800);text-transform:uppercase">Chi phí dự báo</div>
-        <div style="font-size:20px;font-weight:800;color:var(--green-900)">${fmt(res.totalProjectedCost)}</div>
-      </div>`;
+    if (recipesRes.error || ingRes.error) throw new Error(recipesRes.error || ingRes.error);
 
-    // Ingredient list
-    const warnings = res.warnings?.length ?
-      `<div class="alert alert-warning mb-4">⚠️ ${res.warnings.join('; ')}</div>` : '';
+    const recipes = recipesRes.data || {};
+    const ingList = ingRes.data || [];
+    const ingMap = {};
+    ingList.forEach(function(i) { ingMap[i.code] = i; });
 
-    document.getElementById('forecastResult').innerHTML = `
-      ${warnings}
-      <div class="card">
-        <div class="card-header">
-          <span class="card-icon">📦</span>
-          <div>
-            <div class="card-title">Dự báo nhu cầu NVL — ${days} ngày tới</div>
-            <div class="card-subtitle">Xếp theo chi phí giảm dần</div>
-          </div>
-        </div>
-        <div class="card-body">
-          ${res.ingredientForecast.slice(0, 20).map((item, i) => `
-            <div class="forecast-card">
-              <div class="forecast-rank">${i+1}</div>
-              <div class="forecast-info">
-                <div class="forecast-name">${item.name}</div>
-                <div class="forecast-unit">${item.code} · ${item.unit}</div>
-              </div>
-              <div class="forecast-qty">
-                <div class="forecast-qty-val">${Math.ceil(item.totalQty).toLocaleString('vi-VN')} ${item.unit}</div>
-                <div class="forecast-cost">${fmt(item.totalCost)}</div>
-              </div>
-            </div>`).join('')}
-        </div>
-      </div>`;
-  } catch(e) {
-    document.getElementById('forecastResult').innerHTML = `<div class="alert alert-error">❌ ${e.message}</div>`;
+    // Step 2: aggregate sales by product code
+    const productTotals = {};
+    data.forEach(function(item) {
+      const code = item.productCode;
+      if (!code) return;
+      if (!productTotals[code]) productTotals[code] = { sold: 0, revenue: 0, name: item.productName || code };
+      productTotals[code].sold += parseFloat(item.quantitySold) || 0;
+      productTotals[code].revenue += parseFloat(item.revenue) || 0;
+    });
+
+    // Step 3: expand product → ingredients
+    const ingredientForecast = {};
+    const warnings = [];
+
+    Object.keys(productTotals).forEach(function(code) {
+      const totals = productTotals[code];
+      const recipe = recipes[code];
+      if (!recipe) { warnings.push('Không có công thức: ' + code); return; }
+      (recipe.ingredients || []).forEach(function(item) {
+        const projectedQty = totals.sold * item.qty * days;
+        if (!ingredientForecast[item.code]) {
+          ingredientForecast[item.code] = { code: item.code, name: item.name, unit: item.unit, totalQty: 0, totalCost: 0 };
+        }
+        ingredientForecast[item.code].totalQty += projectedQty;
+        ingredientForecast[item.code].totalCost += projectedQty * (item.price || 0);
+      });
+    });
+
+    const forecastList = Object.values(ingredientForecast).sort(function(a, b) { return b.totalCost - a.totalCost; });
+    const totalCost = forecastList.reduce(function(s, i) { return s + i.totalCost; }, 0);
+    const productCount = Object.keys(productTotals).length;
+
+    // Summary card
     document.getElementById('forecastSummary').querySelector('.card-body').innerHTML =
-      `<div class="alert alert-error">❌ ${e.message}</div>`;
+      '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px">' +
+        '<div class="stat-card green" style="padding:12px">' +
+          '<div class="stat-label">Sản phẩm</div>' +
+          '<div class="stat-value" style="font-size:20px">' + productCount + '</div>' +
+        '</div>' +
+        '<div class="stat-card yellow" style="padding:12px">' +
+          '<div class="stat-label">Dự báo ' + days + ' ngày</div>' +
+          '<div class="stat-value" style="font-size:20px">' + forecastList.length + '</div>' +
+          '<div class="stat-sub">loại NVL</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="margin-top:12px;padding:12px;background:var(--gold-l);border-radius:8px;border:1px solid var(--gold)">' +
+        '<div style="font-size:11px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Chi phí dự báo</div>' +
+        '<div style="font-size:20px;font-weight:800;color:var(--brown)">' + fmt(totalCost) + '</div>' +
+      '</div>';
+
+    const warningsHTML = warnings.length
+      ? '<div class="alert alert-warning" style="margin-bottom:16px">⚠️ ' + warnings.slice(0,5).join(' · ') + (warnings.length > 5 ? ' (+' + (warnings.length-5) + ' khác)' : '') + '</div>'
+      : '';
+
+    // Forecast list
+    const forecastRows = forecastList.slice(0, 30).map(function(item, i) {
+      return '<div class="forecast-card">' +
+        '<div class="forecast-rank">' + (i+1) + '</div>' +
+        '<div class="forecast-info">' +
+          '<div class="forecast-name">' + item.name + '</div>' +
+          '<div class="forecast-unit">' + item.code + ' · ' + (item.unit || '') + '</div>' +
+        '</div>' +
+        '<div class="forecast-qty">' +
+          '<div class="forecast-qty-val">' + Math.ceil(item.totalQty).toLocaleString('vi-VN') + ' ' + (item.unit || '') + '</div>' +
+          '<div class="forecast-cost">' + fmt(item.totalCost) + '</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    document.getElementById('forecastResult').innerHTML =
+      warningsHTML +
+      '<div class="card">' +
+        '<div class="card-header">' +
+          '<span class="card-icon">📦</span>' +
+          '<div>' +
+            '<div class="card-title">Dự báo nhu cầu NVL — ' + days + ' ngày tới</div>' +
+            '<div class="card-subtitle">Dựa trên ' + data.length + ' dòng bán hàng · xếp theo chi phí</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-body">' + forecastRows + '</div>' +
+      '</div>';
+
+  } catch(e) {
+    document.getElementById('forecastResult').innerHTML =
+      '<div class="alert alert-error">❌ ' + e.message + '</div>';
+    document.getElementById('forecastSummary').querySelector('.card-body').innerHTML =
+      '<div class="alert alert-error">❌ ' + e.message + '</div>';
   }
 }
+
+
 
 // ============================================================
 // INIT
