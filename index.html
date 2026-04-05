@@ -1482,9 +1482,9 @@ async function saveIngredient() {
 // AI ANALYSIS
 // ============================================================
 async function callGemini(prompt) {
-  const key = state.settings.openaiKey; // reusing same localStorage key
-  if (!key) throw new Error('Chưa cấu hình Gemini API Key. Vào Cài đặt để nhập.');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+  const key = state.settings.openaiKey;
+  if (!key) throw new Error('Chua cau hinh Gemini API Key. Vao Cai dat de nhap.');
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + key;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1494,22 +1494,22 @@ async function callGemini(prompt) {
     })
   });
   if (!res.ok) {
-    const errBody = await res.json().catch(() => ({}));
-    throw new Error(errBody?.error?.message || `HTTP ${res.status}`);
+    const errBody = await res.json().catch(function() { return {}; });
+    throw new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + res.status));
   }
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const parts = data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+  return (parts && parts[0] && parts[0].text) || '';
 }
 
 async function runAIAnalysisUI() {
   const key = state.settings.openaiKey;
   if (!key) {
     document.getElementById('aiResultPanel').innerHTML =
-      '<div class="alert alert-warning">⚠️ Cần nhập Gemini API Key trong Cài đặt trước khi chạy AI Analysis. Lấy miễn phí tại <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a></div>';
+      '<div class="alert alert-warning">Cần nhập Gemini API Key trong Cài đặt. Lấy miễn phí tại: <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--gold)">aistudio.google.com</a></div>';
     return;
   }
 
-  // Load product data if not loaded
   if (!state.products.length) {
     document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Đang tải dữ liệu sản phẩm...';
     try {
@@ -1519,70 +1519,72 @@ async function runAIAnalysisUI() {
   }
 
   document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Gemini đang phân tích...';
-  document.getElementById('aiResultPanel').innerHTML = `
-    <div class="ai-panel">
-      <div class="loader" style="color:rgba(255,255,255,0.7)">
-        <div class="spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:var(--gold)"></div>
-        ✨ Gemini AI đang phân tích dữ liệu chi phí Phúc Tea...
-      </div>
-    </div>`;
+  document.getElementById('aiResultPanel').innerHTML =
+    '<div class="ai-panel">' +
+    '<div class="loader" style="color:rgba(255,255,255,0.7)">' +
+    '<div class="spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:var(--gold)"></div>' +
+    ' Gemini AI đang phân tích dữ liệu chi phí Phúc Tea...' +
+    '</div></div>';
 
   try {
-    const prods = state.products.filter(p => p.cost > 0);
-    const avgCogs = prods.filter(p=>p.cogs>0).reduce((s,p)=>s+p.cogs,0) / (prods.filter(p=>p.cogs>0).length||1);
-    const topCost = [...prods].sort((a,b)=>b.cost-a.cost).slice(0,10);
-    const mode = state.mode === 'ĐC' ? 'Đường Chung' : 'Tách Đường';
+    const prods = state.products.filter(function(p) { return p.cost > 0; });
+    const cogsProds = prods.filter(function(p) { return p.cogs > 0; });
+    const avgCogs = cogsProds.length
+      ? cogsProds.reduce(function(s, p) { return s + p.cogs; }, 0) / cogsProds.length
+      : 0;
+    const topCost = prods.slice().sort(function(a, b) { return b.cost - a.cost; }).slice(0, 10);
+    const modeName = state.mode === 'DC' ? 'Duong Chung' : 'Tach Duong';
 
-    const prompt = `Bạn là chuyên gia phân tích chi phí F&B cho Phúc Tea - chuỗi trà sữa Việt Nam.
-Phân tích dữ liệu chi phí sản phẩm sau và trả lời bằng tiếng Việt.
+    const topLines = topCost.map(function(p) {
+      const cogsVal = p.cogs > 1 ? p.cogs.toFixed(1) : (p.cogs * 100).toFixed(1);
+      return '- ' + p.name + ' (' + p.code + '): Gia von ' + Math.round(p.cost).toLocaleString('vi-VN') + 'd, COGs ' + cogsVal + '%';
+    }).join('; ');
 
-Mode công thức: ${mode}
-Tổng sản phẩm: ${prods.length}
-COGs trung bình: ${(avgCogs*100).toFixed(1)}%
-
-Top 10 sản phẩm giá vốn cao nhất:
-${topCost.map(p=>`- ${p.name} (${p.code}): Giá vốn ${Math.round(p.cost).toLocaleString('vi-VN')}đ, COGs ${p.cogs>1?(p.cogs).toFixed(1):(p.cogs*100).toFixed(1)}%`).join('
-')}
-
-Trả về JSON THUẦN TÚY (không markdown, không backtick):
-{"insight":"Nhận định tình hình chi phí hiện tại (2-3 câu cụ thể)...","recommendation":"Đề xuất cải thiện cụ thể (2-3 câu)...","action":"Hành động ưu tiên cần làm ngay (1-2 câu ngắn gọn)..."}`;
+    const prompt = 'Ban la chuyen gia phan tich chi phi F&B cho Phuc Tea - chuoi tra sua Viet Nam. '
+      + 'Phan tich du lieu chi phi va tra loi bang tieng Viet. '
+      + 'Mode cong thuc: ' + modeName + '. '
+      + 'Tong san pham: ' + prods.length + '. '
+      + 'COGs trung binh: ' + (avgCogs * 100).toFixed(1) + '%. '
+      + 'Top 10 gia von cao: ' + topLines + '. '
+      + 'Yeu cau: Tra ve JSON THUAN TUY, KHONG co markdown, KHONG co backtick, KHONG co gi khac ngoai JSON. '
+      + 'Format chinh xac: {"insight":"Nhan dinh tinh hinh chi phi...","recommendation":"De xuat cai thien...","action":"Hanh dong uu tien..."}';
 
     const raw = await callGemini(prompt);
-    let text = raw.trim().replace(/```json
-?/g,'').replace(/```
-?/g,'').trim();
+    let text = raw.trim();
+    // Remove markdown code blocks if present
+    text = text.replace(/```[\w]*/g, '').replace(/```/g, '').trim();
     const m = text.match(/\{[\s\S]*\}/);
     if (m) text = m[0];
-    
+
     let analysis;
     try { analysis = JSON.parse(text); }
     catch(e) { analysis = { insight: raw, recommendation: '—', action: '—' }; }
 
     const now = new Date().toLocaleString('vi-VN');
     document.getElementById('aiStatus').innerHTML = '';
-    document.getElementById('aiResultPanel').innerHTML = `
-      <div class="ai-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">
-          <div style="font-size:17px;font-weight:800;color:white">✨ Gemini AI — Phân tích chi phí</div>
-          <div style="font-size:11px;color:var(--gold-m)">${now} · ${prods.length} sản phẩm · Mode ${mode}</div>
-        </div>
-        <div class="ai-section">
-          <div class="ai-section-label">💡 Nhận định (Insight)</div>
-          <div class="ai-section-content">${analysis.insight || '—'}</div>
-        </div>
-        <div class="ai-section">
-          <div class="ai-section-label">🎯 Đề xuất (Recommendation)</div>
-          <div class="ai-section-content">${analysis.recommendation || '—'}</div>
-        </div>
-        <div class="ai-section">
-          <div class="ai-section-label">⚡ Hành động ngay (Action)</div>
-          <div class="ai-section-content">${analysis.action || '—'}</div>
-        </div>
-      </div>`;
+    document.getElementById('aiResultPanel').innerHTML =
+      '<div class="ai-panel">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">' +
+          '<div style="font-size:17px;font-weight:800;color:white">✨ Gemini AI — Phân tích chi phí</div>' +
+          '<div style="font-size:11px;color:var(--gold-m)">' + now + ' · ' + prods.length + ' sản phẩm · Mode ' + modeName + '</div>' +
+        '</div>' +
+        '<div class="ai-section">' +
+          '<div class="ai-section-label">💡 Nhận định (Insight)</div>' +
+          '<div class="ai-section-content">' + (analysis.insight || '—') + '</div>' +
+        '</div>' +
+        '<div class="ai-section">' +
+          '<div class="ai-section-label">🎯 Đề xuất (Recommendation)</div>' +
+          '<div class="ai-section-content">' + (analysis.recommendation || '—') + '</div>' +
+        '</div>' +
+        '<div class="ai-section">' +
+          '<div class="ai-section-label">⚡ Hành động ngay (Action)</div>' +
+          '<div class="ai-section-content">' + (analysis.action || '—') + '</div>' +
+        '</div>' +
+      '</div>';
   } catch(e) {
     document.getElementById('aiStatus').innerHTML = '';
     document.getElementById('aiResultPanel').innerHTML =
-      `<div class="alert alert-error">❌ Gemini lỗi: ${e.message}</div>`;
+      '<div class="alert alert-error">❌ Gemini lỗi: ' + e.message + '</div>';
   }
 }
 
