@@ -2,2233 +2,1122 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Phúc Tea – Data Core System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Phúc Tea — Data Core</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* ===== DESIGN TOKENS ===== */
 :root {
-  /* === P&L Design System === */
-  --gold: #F5A623;
-  --gold-l: #FDF3E3;
-  --gold-m: #F7C56E;
-  --brown: #3D2B1F;
-  --brown-m: #6B4226;
-  --brown-l: #9C6B47;
-  --cream: #FAF7F2;
-  --white: #fff;
-  --border: #E8E0D4;
-  --red: #E53E3E;
-  --red-l: #FFF5F5;
-  --green: #2D8248;
-  --green-l: #F0FFF4;
-  --blue: #2B6CB0;
-  --blue-l: #EBF8FF;
-  --gray: #718096;
-  --gray-l: #F7F8FA;
+  --gold:#F5A623;--gold-l:#FDF3E3;--gold-m:#F7C56E;
+  --brown:#3D2B1F;--brown-m:#6B4226;--brown-l:#9C6B47;
+  --cream:#FAF7F2;--white:#fff;--border:#E8E0D4;
+  --red:#E53E3E;--red-l:#FFF5F5;
+  --green:#2D8248;--green-l:#F0FFF4;
+  --gray:#718096;--gray-l:#F7F8FA;
+  --sidebar-w:240px;--header-h:56px;--r:12px;--rs:8px;
+  --sh:0 2px 12px rgba(61,43,31,.08);--shm:0 4px 24px rgba(61,43,31,.12);
+  --trans:.18s cubic-bezier(.4,0,.2,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px;scroll-behavior:smooth}
+body{font-family:'Be Vietnam Pro',sans-serif;background:var(--cream);color:var(--brown);line-height:1.6;overflow-x:hidden}
+button{cursor:pointer;font-family:inherit;border:none;outline:none}
+input,textarea,select{font-family:inherit;outline:none}
+a{text-decoration:none;color:inherit}
 
-  /* === Aliases for existing CSS === */
-  --green-900: #2D1B0E;
-  --green-800: #3D2B1F;
-  --green-700: #6B4226;
-  --green-600: #F5A623;
-  --green-500: #F5A623;
-  --green-400: #F7C56E;
-  --green-100: #FDF3E3;
-  --yellow-400: #F5A623;
-  --yellow-300: #F7C56E;
-  --amber-500: #F5A623;
-  --red-400: #E53E3E;
-  --red-500: #E53E3E;
-  --gray-50: #FAF7F2;
-  --gray-100: #F7F8FA;
-  --gray-200: #E8E0D4;
-  --gray-300: #d4c8bc;
-  --gray-400: #718096;
-  --gray-500: #718096;
-  --gray-600: #6B4226;
-  --gray-700: #3D2B1F;
-  --gray-800: #3D2B1F;
-  --gray-900: #3D2B1F;
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--brown);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:100;transition:transform var(--trans)}
+.sidebar-logo{padding:16px 16px 12px;border-bottom:2px solid var(--gold)}
+.logo-row{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;background:var(--gold);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.logo-title{font-size:13px;font-weight:800;color:var(--white);line-height:1.2}
+.logo-sub{font-size:9px;color:var(--gold);font-weight:600;letter-spacing:1.2px;text-transform:uppercase}
 
-  --sidebar-w: 240px;
-  --header-h: 60px;
-  --radius: 12px;
-  --shadow-sm: 0 2px 12px rgba(61,43,31,.08);
-  --shadow-md: 0 4px 24px rgba(61,43,31,.12);
-  --shadow-lg: 0 8px 32px rgba(61,43,31,.18);
-  --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
-}
-
-/* ===== RESET & BASE ===== */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 14px; scroll-behavior: smooth; }
-body {
-  font-family: 'Be Vietnam Pro', sans-serif;
-  background: var(--cream);
-  color: var(--brown);
-  line-height: 1.6;
-  overflow-x: hidden;
-}
-button { cursor: pointer; font-family: inherit; border: none; outline: none; }
-input, textarea, select { font-family: inherit; outline: none; }
-a { text-decoration: none; color: inherit; }
-
-/* ===== LAYOUT ===== */
-.app { display: flex; min-height: 100vh; }
-
-/* ===== SIDEBAR ===== */
-.sidebar {
-  width: var(--sidebar-w);
-  min-height: 100vh;
-  background: var(--brown);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  left: 0; top: 0; bottom: 0;
-  z-index: 100;
-  transition: transform var(--transition);
-}
-
-.sidebar-logo {
-  padding: 20px 18px 16px;
-  border-bottom: 2px solid var(--gold);
-}
-.logo-badge {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.logo-icon {
-  width: 36px; height: 36px;
-  background: var(--gold);
-  border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px;
-}
-.logo-text { flex: 1; }
-.logo-title { font-size: 13px; font-weight: 800; color: var(--white); letter-spacing: 0.3px; line-height: 1.2; }
-.logo-sub { font-size: 10px; color: var(--gold); font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
-
-/* Mode Toggle */
-.mode-toggle {
-  margin: 10px 12px;
-  background: rgba(255,255,255,0.08);
-  border-radius: 8px;
-  padding: 3px;
-  display: flex;
-  gap: 2px;
-  border: 1px solid rgba(245,166,35,0.2);
-}
-.mode-btn {
-  flex: 1;
-  padding: 7px 6px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  color: rgba(255,255,255,0.5);
-  background: transparent;
-  transition: all var(--transition);
-  text-align: center;
-}
-.mode-btn.active {
-  background: var(--gold);
-  color: var(--brown);
-  box-shadow: 0 2px 8px rgba(245,166,35,0.4);
-}
+/* Mode toggle */
+.mode-row{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.mode-label{font-size:9px;font-weight:700;color:var(--gold);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.mode-tabs{display:flex;gap:3px;background:rgba(255,255,255,.06);border-radius:8px;padding:3px}
+.mode-btn{flex:1;padding:6px 4px;border-radius:6px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);background:transparent;transition:all var(--trans);text-align:center}
+.mode-btn.active{background:var(--gold);color:var(--brown)}
 
 /* Nav */
-.sidebar-nav { flex: 1; padding: 8px 10px; overflow-y: auto; }
-.nav-section { margin-bottom: 6px; }
-.nav-label {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--gold);
-  letter-spacing: 1.2px;
-  text-transform: uppercase;
-  padding: 8px 8px 4px;
-}
-.nav-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 10px;
-  border-radius: 9px;
-  color: var(--gray-300);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition);
-  margin-bottom: 1px;
-}
-.nav-item:hover { background: rgba(245,166,35,0.12); color: var(--gold); }
-.nav-item.active {
-  background: linear-gradient(135deg, rgba(245,166,35,0.2), rgba(245,166,35,0.1));
-  color: var(--gold);
-  border-left: 2px solid var(--gold);
-  box-shadow: none;
-}
-.nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
-.nav-badge {
-  margin-left: auto;
-  background: rgba(245,166,35,0.2);
-  color: var(--gold-m);
-  font-size: 9px;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 99px;
-}
-.nav-badge.priority { background: var(--gold); color: var(--brown); }
+.sidebar-nav{flex:1;padding:8px 10px;overflow-y:auto}
+.nav-sec-label{font-size:9px;font-weight:700;color:var(--gold);letter-spacing:1.2px;text-transform:uppercase;padding:8px 8px 3px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:9px;color:rgba(255,255,255,.6);font-size:13px;font-weight:500;cursor:pointer;transition:all var(--trans);margin-bottom:1px;border-left:2px solid transparent}
+.nav-item:hover{background:rgba(245,166,35,.1);color:var(--gold)}
+.nav-item.active{background:rgba(245,166,35,.12);color:var(--gold);border-left-color:var(--gold)}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--gold);color:var(--brown);font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px}
 
-/* Sidebar footer */
-.sidebar-footer { padding: 12px 14px; border-top: 1px solid rgba(255,255,255,0.07); }
-.ext-link-btn {
-  width: 100%;
-  display: flex; align-items: center; gap: 8px;
-  padding: 10px 12px;
-  background: var(--gold);
-  border-radius: 9px;
-  color: var(--brown);
-  font-size: 12px;
-  font-weight: 700;
-  transition: all var(--transition);
+.sidebar-footer{padding:12px;border-top:1px solid rgba(255,255,255,.07)}
+.ext-btn{width:100%;display:flex;align-items:center;gap:7px;padding:9px 12px;background:var(--gold);border-radius:8px;color:var(--brown);font-size:12px;font-weight:700;transition:all var(--trans)}
+.ext-btn:hover{background:var(--gold-m);transform:translateY(-1px)}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar-w);display:flex;flex-direction:column;min-height:100vh}
+.topbar{height:var(--header-h);background:var(--white);border-bottom:2px solid var(--gold);display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:15px;font-weight:700;color:var(--brown);flex:1}
+.topbar-sub{font-size:11px;color:var(--gray);font-weight:400}
+.topbar-actions{display:flex;gap:8px;align-items:center}
+.mode-badge{padding:3px 10px;border-radius:99px;font-size:11px;font-weight:700;background:var(--gold-l);color:var(--brown-m);border:1px solid var(--gold)}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-on{background:var(--gold);animation:pulse 2s infinite}
+.dot-off{background:var(--red)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── PAGE ── */
+.page{padding:20px;display:none;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.page-hd{margin-bottom:20px}
+.page-hd h1{font-size:20px;font-weight:800;color:var(--brown)}
+.page-hd p{font-size:12px;color:var(--gray);margin-top:2px}
+
+/* ── CARDS ── */
+.card{background:var(--white);border-radius:var(--r);border:1.5px solid var(--border);box-shadow:var(--sh);overflow:hidden;margin-bottom:16px}
+.card-hd{padding:13px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-title{font-size:13px;font-weight:700;color:var(--brown)}
+.card-sub{font-size:11px;color:var(--gray)}
+.card-body{padding:16px}
+.card-icon{font-size:16px}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:14px 16px;position:relative;overflow:hidden;transition:all var(--trans)}
+.stat:hover{transform:translateY(-2px);box-shadow:var(--shm)}
+.stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent,var(--gold))}
+.stat.red{--accent:var(--red)}.stat.blue{--accent:#60a5fa}
+.stat-label{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+.stat-val{font-size:22px;font-weight:800;color:var(--brown);line-height:1}
+.stat-sub{font-size:11px;color:var(--gray);margin-top:3px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:var(--rs);font-size:13px;font-weight:600;transition:all var(--trans);white-space:nowrap}
+.btn-primary{background:var(--gold);color:var(--brown)}.btn-primary:hover{background:var(--gold-m);transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,166,35,.3)}
+.btn-secondary{background:var(--white);color:var(--brown-m);border:1.5px solid var(--border)}.btn-secondary:hover{border-color:var(--gold);color:var(--gold)}
+.btn-green{background:var(--green);color:#fff}.btn-green:hover{opacity:.9;transform:translateY(-1px)}
+.btn-red{background:var(--red);color:#fff}.btn-red:hover{opacity:.9}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.btn:disabled{opacity:.45;cursor:not-allowed;transform:none!important}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ── FORM ── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:11px;font-weight:700;color:var(--brown-m);margin-bottom:5px;text-transform:uppercase;letter-spacing:.04em}
+.form-input{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--rs);font-size:13px;color:var(--brown);background:var(--white);transition:all var(--trans)}
+.form-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,.12)}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%236B4226' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;background-size:14px;padding-right:30px}
+.form-textarea{resize:vertical;min-height:72px}
+.form-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── TABLE ── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{padding:9px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;background:var(--gray-l);border-bottom:1px solid var(--border)}
+td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--brown);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--gold-l)}
+.td-code{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--brown-m);font-weight:500}
+.td-num{text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.td-cost{text-align:right;font-weight:700;color:var(--brown)}
+
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+.badge-green{background:var(--green-l);color:var(--green)}
+.badge-gold{background:var(--gold-l);color:var(--brown-m)}
+.badge-red{background:var(--red-l);color:var(--red)}
+.badge-gray{background:var(--gray-l);color:var(--gray)}
+.badge-btp{background:#ede9fe;color:#5b21b6}
+
+/* ── ALERTS ── */
+.alert{padding:10px 14px;border-radius:var(--rs);font-size:13px;display:flex;align-items:flex-start;gap:9px;margin-bottom:12px}
+.alert-warn{background:var(--gold-l);border-left:3px solid var(--gold);color:var(--brown-m)}
+.alert-ok{background:var(--green-l);border-left:3px solid var(--green);color:var(--green)}
+.alert-err{background:var(--red-l);border-left:3px solid var(--red);color:var(--red)}
+.alert-info{background:#eff6ff;border-left:3px solid #60a5fa;color:#1e40af}
+
+/* ── LOADER ── */
+.loader{display:flex;align-items:center;gap:8px;color:var(--gray);font-size:13px;padding:20px;justify-content:center}
+.spin{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── EMPTY ── */
+.empty{text-align:center;padding:40px 20px}
+.empty-icon{font-size:40px;opacity:.25;margin-bottom:12px}
+.empty-title{font-size:15px;font-weight:700;color:var(--gray)}
+.empty-sub{font-size:12px;color:var(--gray);margin-top:3px}
+
+/* ── SEARCH ── */
+.search-wrap{position:relative}
+.search-wrap .form-input{padding-left:34px}
+.search-icon{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--gray);font-size:13px;pointer-events:none}
+
+/* ── AI PANEL ── */
+.ai-panel{background:linear-gradient(135deg,var(--brown),var(--brown-m));border-radius:var(--r);padding:20px;color:var(--white);position:relative;overflow:hidden;border:1.5px solid var(--gold)}
+.ai-section{margin-bottom:16px}
+.ai-section:last-child{margin-bottom:0}
+.ai-section-label{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-m);margin-bottom:6px}
+.ai-section-content{font-size:13px;line-height:1.7;color:rgba(255,255,255,.88)}
+
+/* ── COST BREAKDOWN ── */
+.bar-wrap{background:var(--gray-l);border-radius:99px;height:5px;margin-top:3px}
+.bar-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold-m));transition:width .5s ease}
+
+/* ── FORECAST ITEM ── */
+.fc-card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin-bottom:7px;display:flex;align-items:center;gap:12px;transition:all var(--trans)}
+.fc-card:hover{border-color:var(--gold);box-shadow:var(--sh)}
+.fc-rank{font-size:11px;font-weight:700;color:var(--gray);width:22px;text-align:center;flex-shrink:0}
+.fc-info{flex:1;min-width:0}
+.fc-name{font-size:13px;font-weight:600;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc-code{font-size:11px;color:var(--gray)}
+.fc-qty{text-align:right;flex-shrink:0}
+.fc-qty-val{font-size:15px;font-weight:800;color:var(--brown)}
+.fc-cost{font-size:11px;color:var(--gray)}
+
+/* ── ORDER TABLE ── */
+.order-total{background:linear-gradient(135deg,var(--brown),var(--brown-m));border-radius:var(--rs);padding:14px 16px;color:white;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:3px;background:var(--gray-l);border-radius:10px;padding:3px;margin-bottom:16px;border:1.5px solid var(--border)}
+.tab-btn{flex:1;padding:7px 10px;border-radius:8px;font-size:12px;font-weight:600;color:var(--gray);background:transparent;transition:all var(--trans);text-align:center}
+.tab-btn.active{background:var(--white);color:var(--brown);box-shadow:var(--sh)}
+
+/* ── SUGGEST ── */
+.suggest-box{display:none;position:absolute;top:100%;left:0;right:0;background:var(--white);border:1.5px solid var(--border);border-radius:var(--rs);box-shadow:var(--shm);z-index:200;max-height:220px;overflow-y:auto;margin-top:3px}
+.suggest-item{padding:9px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border)}
+.suggest-item:last-child{border-bottom:none}
+.suggest-item:hover{background:var(--gold-l)}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.flex{display:flex}.flex-col{flex-direction:column}
+.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}
+.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}.mt-3{margin-top:12px}
+.text-sm{font-size:12px}.text-xs{font-size:11px}.text-muted{color:var(--gray)}
+.font-bold{font-weight:700}.font-mono{font-family:'JetBrains Mono',monospace;font-size:11px}
+.w-full{width:100%}
+
+/* ── TOGGLE ── */
+.toggle-row{display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);margin-bottom:16px;flex-wrap:wrap}
+.toggle-label{font-size:12px;font-weight:700;color:var(--brown)}
+.radio-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--brown)}
+.radio-opt input{accent-color:var(--gold);width:15px;height:15px}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateY(80px);opacity:0;transition:all .3s;max-width:320px;box-shadow:var(--shm)}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.ok{background:var(--green);color:#fff}
+#toast.err{background:var(--red);color:#fff}
+#toast.info{background:var(--gold);color:var(--brown)}
+
+/* ── MOBILE ── */
+.hamburger{display:none;background:transparent;color:var(--white);font-size:20px;padding:4px 8px;margin-right:8px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(61,43,31,.55);z-index:99}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+  .main{margin-left:0}
+  .hamburger{display:flex;align-items:center}
+  .g2,.g3,.stats-grid{grid-template-columns:1fr}
+  .form-grid-2{grid-template-columns:1fr}
+  .page{padding:14px}
+  .topbar{padding:0 12px}
+  .topbar-sub{display:none}
+  .toggle-row{gap:10px}
 }
-.ext-link-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,158,11,0.4); }
-
-/* ===== MAIN CONTENT ===== */
-.main {
-  margin-left: var(--sidebar-w);
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-}
-
-/* Top Header */
-.topbar {
-  height: var(--header-h);
-  background: var(--white);
-  border-bottom: 2px solid var(--gold);
-  display: flex; align-items: center;
-  padding: 0 24px;
-  gap: 16px;
-  position: sticky; top: 0; z-index: 50;
-}
-.topbar-title { font-size: 16px; font-weight: 700; color: var(--brown); flex: 1; }
-.topbar-subtitle { font-size: 12px; color: var(--gray-400); font-weight: 400; }
-.topbar-actions { display: flex; gap: 8px; align-items: center; }
-.topbar-mode-badge {
-  padding: 4px 12px;
-  border-radius: 99px;
-  font-size: 11px;
-  font-weight: 700;
-  background: var(--gold-l);
-  color: var(--brown-m);
-  border: 1px solid var(--gold);
-}
-
-/* Page Content */
-.page { padding: 24px; display: none; animation: fadeIn 0.25s ease; }
-.page.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-
-/* ===== COMPONENT: PAGE HEADER ===== */
-.page-header { margin-bottom: 24px; }
-.page-header h1 { font-size: 22px; font-weight: 800; color: var(--brown); }
-.page-header p { font-size: 13px; color: var(--gray-500); margin-top: 2px; }
-
-/* ===== COMPONENT: CARDS ===== */
-.card {
-  background: var(--white);
-  border-radius: var(--radius);
-  border: 1.5px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-.card-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 12px;
-}
-.card-title { font-size: 14px; font-weight: 700; color: var(--gray-800); }
-.card-subtitle { font-size: 12px; color: var(--gray-400); }
-.card-body { padding: 20px; }
-.card-icon { font-size: 18px; }
-
-/* ===== COMPONENT: STAT CARDS ===== */
-.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.stat-card {
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px 20px;
-  position: relative;
-  overflow: hidden;
-  transition: all var(--transition);
-}
-.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 3px;
-  background: var(--accent, var(--gold));
-}
-.stat-card.green { --accent: var(--gold); }
-.stat-card.yellow { --accent: var(--brown-m); }
-.stat-card.red { --accent: var(--red-400); }
-.stat-card.blue { --accent: #60a5fa; }
-.stat-label { font-size: 11px; font-weight: 600; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; }
-.stat-value { font-size: 26px; font-weight: 800; color: var(--gray-900); line-height: 1; }
-.stat-sub { font-size: 11px; color: var(--gray-400); margin-top: 4px; }
-
-/* ===== COMPONENT: BUTTONS ===== */
-.btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  transition: all var(--transition);
-  white-space: nowrap;
-}
-.btn-primary { background: var(--gold); color: var(--brown); font-weight: 700; }
-.btn-primary:hover { background: var(--gold-m); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(245,166,35,0.4); }
-.btn-secondary { background: var(--gray-100); color: var(--gray-700); border: 1px solid var(--gray-200); }
-.btn-secondary:hover { background: var(--gray-200); }
-.btn-yellow { background: var(--gold); color: var(--brown); }
-.btn-yellow:hover { background: var(--gold-m); transform: translateY(-1px); }
-.btn-danger { background: var(--red-500); color: white; }
-.btn-sm { padding: 6px 12px; font-size: 12px; }
-.btn-icon { padding: 8px; min-width: 36px; justify-content: center; }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
-
-/* ===== COMPONENT: TABLE ===== */
-.table-wrap { overflow-x: auto; }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th {
-  text-align: left;
-  padding: 10px 14px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--gray);
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  background: var(--gray-l);
-  border-bottom: 1px solid var(--border);
-}
-td { padding: 11px 14px; border-bottom: 1px solid var(--border); color: var(--brown); vertical-align: middle; }
-tr:last-child td { border-bottom: none; }
-tr:hover td { background: var(--gold-l); }
-.td-code { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--green-700); font-weight: 500; }
-.td-money { font-weight: 600; color: var(--gray-900); font-variant-numeric: tabular-nums; }
-.td-cogs { font-weight: 700; }
-.td-cogs.low { color: var(--green-600); }
-.td-cogs.mid { color: var(--amber-500); }
-.td-cogs.high { color: var(--red-500); }
-.badge {
-  display: inline-flex; align-items: center;
-  padding: 2px 8px;
-  border-radius: 99px;
-  font-size: 10px;
-  font-weight: 700;
-}
-.badge-green { background: var(--green-l); color: var(--green); }
-.badge-yellow { background: var(--gold-l); color: var(--brown-m); }
-.badge-red { background: var(--red-l); color: var(--red); }
-.badge-gray { background: var(--gray-100); color: var(--gray-600); }
-
-/* ===== COMPONENT: INPUT ===== */
-.form-group { margin-bottom: 16px; }
-.form-label { display: block; font-size: 12px; font-weight: 600; color: var(--gray-600); margin-bottom: 6px; }
-.form-input {
-  width: 100%;
-  padding: 9px 12px;
-  border: 1.5px solid var(--border);
-  border-radius: 8px;
-  font-size: 13px;
-  color: var(--brown);
-  background: var(--white);
-  transition: all var(--transition);
-}
-.form-input:focus { border-color: var(--green-500); box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
-.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 6l4 4 4-4' stroke='%2394a3b8' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; background-size: 16px; padding-right: 32px; }
-.form-textarea { resize: vertical; min-height: 80px; }
-
-/* ===== COMPONENT: ALERT ===== */
-.alert { padding: 11px 14px; border-radius: 8px; font-size: 13px; display: flex; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
-.alert-warning { background: var(--gold-l); border-left: 3px solid var(--gold); color: var(--brown-m); }
-.alert-success { background: var(--green-l); border-left: 3px solid var(--green); color: var(--green); }
-.alert-error { background: var(--red-l); border-left: 3px solid var(--red); color: var(--red); }
-.alert-info { background: var(--blue-l); border-left: 3px solid var(--blue); color: var(--blue); }
-
-/* ===== COMPONENT: LOADER ===== */
-.loader { display: flex; align-items: center; gap: 8px; color: var(--gray-400); font-size: 13px; padding: 20px; justify-content: center; }
-.spinner { width: 20px; height: 20px; border: 2px solid var(--gray-200); border-top-color: var(--green-500); border-radius: 50%; animation: spin 0.7s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* ===== GRID HELPERS ===== */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-.flex { display: flex; }
-.flex-col { flex-direction: column; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.mb-4 { margin-bottom: 16px; }
-.mb-6 { margin-bottom: 24px; }
-.mt-4 { margin-top: 16px; }
-.text-sm { font-size: 12px; }
-.text-xs { font-size: 11px; }
-.text-muted { color: var(--gray-400); }
-.font-mono { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
-.font-bold { font-weight: 700; }
-
-/* ===== AI RESULT PANEL ===== */
-.ai-panel {
-  background: linear-gradient(135deg, var(--brown) 0%, var(--brown-m) 100%);
-  border-radius: var(--radius);
-  padding: 24px;
-  color: var(--white);
-  position: relative;
-  overflow: hidden;
-}
-.ai-panel::before {
-  content: '';
-  position: absolute;
-  top: -50%; right: -50%;
-  width: 300px; height: 300px;
-  background: radial-gradient(circle, rgba(34,197,94,0.15) 0%, transparent 70%);
-  pointer-events: none;
-}
-.ai-section { margin-bottom: 20px; }
-.ai-section:last-child { margin-bottom: 0; }
-.ai-section-label {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--gold-m);
-  margin-bottom: 8px;
-}
-.ai-section-content { font-size: 14px; line-height: 1.7; color: rgba(255,255,255,0.9); }
-
-/* ===== COST BREAKDOWN ===== */
-.breakdown-bar {
-  background: var(--gray-100);
-  border-radius: 99px;
-  height: 6px;
-  overflow: hidden;
-  margin-top: 4px;
-}
-.breakdown-bar-fill {
-  height: 100%;
-  border-radius: 99px;
-  background: linear-gradient(90deg, var(--gold), var(--gold-m));
-  transition: width 0.5s ease;
-}
-
-/* ===== SEARCH ===== */
-.search-wrap { position: relative; }
-.search-wrap input { padding-left: 36px; }
-.search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 14px; pointer-events: none; }
-
-/* ===== SETTINGS ===== */
-.settings-section { max-width: 600px; }
-.settings-card { margin-bottom: 20px; }
-
-/* ===== FORECAST ===== */
-.forecast-card {
-  background: var(--white);
-  border: 1.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 8px;
-  display: flex; align-items: center; gap: 14px;
-}
-.forecast-rank { font-size: 12px; font-weight: 700; color: var(--gray-400); width: 24px; text-align: center; }
-.forecast-info { flex: 1; }
-.forecast-name { font-size: 13px; font-weight: 600; color: var(--brown); }
-.forecast-unit { font-size: 11px; color: var(--gray-400); }
-.forecast-qty { text-align: right; }
-.forecast-qty-val { font-size: 16px; font-weight: 800; color: var(--brown); }
-.forecast-cost { font-size: 11px; color: var(--gray-400); }
-
-/* ===== STATUS INDICATOR ===== */
-.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-.status-online { background: var(--gold); animation: pulse 2s infinite; }
-.status-offline { background: var(--red-400); }
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
-
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); }
-  .sidebar.open { transform: none; }
-  .main { margin-left: 0; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-}
-
-/* ===== EMPTY STATE ===== */
-.empty-state { text-align: center; padding: 48px 24px; }
-.empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.3; }
-.empty-title { font-size: 16px; font-weight: 700; color: var(--gray-600); }
-.empty-desc { font-size: 13px; color: var(--gray-400); margin-top: 4px; }
-
-/* ===== TABS ===== */
-.tabs { display: flex; gap: 4px; background: var(--gray-100); border-radius: 10px; padding: 4px; margin-bottom: 20px; border: 1.5px solid var(--border); }
-.tab-btn { flex: 1; padding: 8px 12px; border-radius: 7px; font-size: 12px; font-weight: 600; color: var(--gray); background: transparent; transition: all var(--transition); text-align: center; }
-.tab-btn.active { background: var(--white); color: var(--brown); box-shadow: var(--shadow-sm); border: 1px solid var(--border); }
 </style>
 </head>
 <body>
 
-<div class="app">
-  <!-- ===== SIDEBAR ===== -->
-  <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-badge">
-        <div class="logo-icon">🍵</div>
-        <div class="logo-text">
-          <div class="logo-title">Phúc Tea</div>
-          <div class="logo-sub">Data Core System</div>
-        </div>
+<div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-row">
+      <div class="logo-icon">🍵</div>
+      <div>
+        <div class="logo-title">Phúc Tea</div>
+        <div class="logo-sub">Data Core v3</div>
       </div>
     </div>
+  </div>
 
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="modeBtn_DC" onclick="setMode('ĐC')">⚖️ Đường Chung</button>
-      <button class="mode-btn" id="modeBtn_TD" onclick="setMode('TĐ')">🍯 Tách Đường</button>
+  <div class="mode-row">
+    <div class="mode-label">Chế độ công thức</div>
+    <div class="mode-tabs">
+      <button class="mode-btn active" id="mBtn_DC" onclick="setMode('DC')">⚖️ ĐC</button>
+      <button class="mode-btn" id="mBtn_TD" onclick="setMode('TD')">🍯 TĐ</button>
+      <button class="mode-btn" id="mBtn_TH" onclick="setMode('TH')">🌸 TH</button>
     </div>
+  </div>
 
-    <nav class="sidebar-nav">
-      <div class="nav-section">
-        <div class="nav-label">Tổng quan</div>
-        <div class="nav-item active" onclick="showPage('dashboard')" id="nav-dashboard">
-          <span class="nav-icon">📊</span> Dashboard
-        </div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Chi phí</div>
-        <div class="nav-item" onclick="showPage('costengine')" id="nav-costengine">
-          <span class="nav-icon">🧮</span> Cost Engine
-        </div>
-        <div class="nav-item" onclick="showPage('products')" id="nav-products">
-          <span class="nav-icon">🥤</span> Sản phẩm
-        </div>
-        <div class="nav-item" onclick="showPage('ingredients')" id="nav-ingredients">
-          <span class="nav-icon">🧪</span> Nguyên vật liệu
-        </div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Intelligence</div>
-        <div class="nav-item" onclick="showPage('ai')" id="nav-ai">
-          <span class="nav-icon">🤖</span> AI Analysis
-          <span class="nav-badge priority">AI</span>
-        </div>
-        <div class="nav-item" onclick="showPage('forecast')" id="nav-forecast">
-          <span class="nav-icon">📈</span> Forecasting
-          <span class="nav-badge priority">AI</span>
-        </div>
-      </div>
-      <div class="nav-section">
-        <div class="nav-label">Hệ thống</div>
-        <div class="nav-item" onclick="showPage('settings')" id="nav-settings">
-          <span class="nav-icon">⚙️</span> Cài đặt
-        </div>
-      </div>
-    </nav>
+  <nav class="sidebar-nav">
+    <div class="nav-sec-label">Tổng quan</div>
+    <div class="nav-item active" id="nav-dash" onclick="nav('dash')"><span class="nav-icon">📊</span>Dashboard</div>
+    <div class="nav-sec-label" style="margin-top:6px">Chi phí</div>
+    <div class="nav-item" id="nav-cost" onclick="nav('cost')"><span class="nav-icon">🧮</span>Cost Engine</div>
+    <div class="nav-item" id="nav-products" onclick="nav('products')"><span class="nav-icon">🥤</span>Sản phẩm</div>
+    <div class="nav-item" id="nav-nvl" onclick="nav('nvl')"><span class="nav-icon">🧪</span>Nguyên vật liệu</div>
+    <div class="nav-sec-label" style="margin-top:6px">Intelligence</div>
+    <div class="nav-item" id="nav-forecast" onclick="nav('forecast')"><span class="nav-icon">📈</span>Forecasting<span class="nav-badge">AI</span></div>
+    <div class="nav-item" id="nav-order" onclick="nav('order')"><span class="nav-icon">📦</span>Đặt hàng</div>
+    <div class="nav-item" id="nav-ai" onclick="nav('ai')"><span class="nav-icon">🤖</span>AI Analysis<span class="nav-badge">AI</span></div>
+    <div class="nav-sec-label" style="margin-top:6px">Hệ thống</div>
+    <div class="nav-item" id="nav-settings" onclick="nav('settings')"><span class="nav-icon">⚙️</span>Cài đặt</div>
+  </nav>
 
-    <div class="sidebar-footer">
-      <a href="https://phuctea-pl.vercel.app" target="_blank" class="ext-link-btn">
-        📊 Phúc Tea P&L ↗
-      </a>
+  <div class="sidebar-footer">
+    <a href="https://phuctea-pl.vercel.app" target="_blank" class="ext-btn">📊 Phúc Tea P&L ↗</a>
+  </div>
+</aside>
+
+<main class="main">
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <button class="hamburger" onclick="openSidebar()">☰</button>
+    <div class="topbar-title"><span id="pageTitle">Dashboard</span><span class="topbar-sub"> — Phúc Tea Data Core</span></div>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="syncData()" id="syncBtn">🔄 Đồng bộ</button>
+      <span class="mode-badge" id="modeBadge">⚖️ Đường Chung</span>
+      <span class="status-dot dot-off" id="connDot" title="Kết nối"></span>
     </div>
-  </aside>
+  </div>
 
-  <!-- ===== MAIN ===== -->
-  <main class="main">
-    <!-- Topbar -->
-    <div class="topbar">
-      <div class="topbar-title">
-        <span id="topbarTitle">Dashboard</span>
-        <span class="topbar-subtitle"> — Phúc Tea Data Core System</span>
-      </div>
-      <div class="topbar-actions">
-        <button class="btn btn-secondary btn-sm" onclick="syncAllData()" id="syncBtn" title="Đồng bộ dữ liệu từ Google Sheets">
-          🔄 Đồng bộ dữ liệu
-        </button>
-        <span class="topbar-mode-badge" id="topbarMode">⚖️ Đường Chung</span>
-        <span class="status-dot status-offline" id="connStatus" title="Trạng thái kết nối"></span>
-      </div>
+  <!-- ═══ DASHBOARD ═══ -->
+  <div class="page active" id="page-dash">
+    <div class="page-hd"><h1>📊 Dashboard Tổng quan</h1><p>Số liệu chi phí toàn bộ hệ thống Phúc Tea</p></div>
+    <div class="stats-grid" id="dashStats">
+      <div class="stat"><div class="stat-label">Tổng sản phẩm</div><div class="stat-val" id="st-total">—</div><div class="stat-sub">mode hiện tại</div></div>
+      <div class="stat"><div class="stat-label">Giá vốn TB</div><div class="stat-val" id="st-avgcost">—</div><div class="stat-sub">VNĐ / ly</div></div>
+      <div class="stat blue"><div class="stat-label">COGs TB</div><div class="stat-val" id="st-cogs">—</div><div class="stat-sub">% doanh thu</div></div>
+      <div class="stat red"><div class="stat-label">COGs cao (>35%)</div><div class="stat-val" id="st-highcogs">—</div><div class="stat-sub">cần kiểm soát</div></div>
     </div>
+    <div class="g2">
+      <div class="card"><div class="card-hd"><span class="card-icon">🔥</span><div><div class="card-title">Top 10 COGs cao nhất</div></div></div><div class="card-body" id="topCogsEl"><div class="loader"><div class="spin"></div>Đang tải...</div></div></div>
+      <div class="card"><div class="card-hd"><span class="card-icon">💰</span><div><div class="card-title">Top 10 giá vốn cao nhất</div></div></div><div class="card-body" id="topCostEl"><div class="loader"><div class="spin"></div>Đang tải...</div></div></div>
+    </div>
+  </div>
 
-    <!-- ===== PAGE: DASHBOARD ===== -->
-    <div class="page active" id="page-dashboard">
-      <div class="page-header">
-        <h1>📊 Dashboard Tổng quan</h1>
-        <p>Số liệu chi phí & vận hành toàn bộ hệ thống Phúc Tea</p>
-      </div>
-
-      <div class="stats-grid" id="dashStats">
-        <div class="stat-card green">
-          <div class="stat-label">Tổng sản phẩm</div>
-          <div class="stat-value" id="statTotal">—</div>
-          <div class="stat-sub">Trong mode hiện tại</div>
-        </div>
-        <div class="stat-card yellow">
-          <div class="stat-label">Giá vốn trung bình</div>
-          <div class="stat-value" id="statAvgCost">—</div>
-          <div class="stat-sub">VNĐ / ly</div>
-        </div>
-        <div class="stat-card blue">
-          <div class="stat-label">COGs trung bình</div>
-          <div class="stat-value" id="statAvgCogs">—</div>
-          <div class="stat-sub">% doanh thu</div>
-        </div>
-        <div class="stat-card red">
-          <div class="stat-label">Sản phẩm COGs cao</div>
-          <div class="stat-value" id="statHighCogs">—</div>
-          <div class="stat-sub">Cần theo dõi (&gt;35%)</div>
-        </div>
-      </div>
-
-      <div class="grid-2 mb-6">
+  <!-- ═══ COST ENGINE ═══ -->
+  <div class="page" id="page-cost">
+    <div class="page-hd"><h1>🧮 Cost Engine</h1><p>Tính giá vốn sản phẩm theo công thức định lượng — Mode: <span id="costModeLabel"></span></p></div>
+    <div class="g2">
+      <div>
         <div class="card">
-          <div class="card-header">
-            <span class="card-icon">🔥</span>
-            <div>
-              <div class="card-title">Top 10 sản phẩm COGs cao nhất</div>
-              <div class="card-subtitle">Cần kiểm soát chi phí</div>
-            </div>
-          </div>
-          <div class="card-body" id="topCogsTable">
-            <div class="loader"><div class="spinner"></div> Đang tải...</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <span class="card-icon">💰</span>
-            <div>
-              <div class="card-title">Top 10 giá vốn cao nhất</div>
-              <div class="card-subtitle">Theo VNĐ tuyệt đối</div>
-            </div>
-          </div>
-          <div class="card-body" id="topCostTable">
-            <div class="loader"><div class="spinner"></div> Đang tải...</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== PAGE: COST ENGINE ===== -->
-    <div class="page" id="page-costengine">
-      <div class="page-header">
-        <h1>🧮 Cost Engine</h1>
-        <p>Tính giá vốn sản phẩm theo công thức định lượng</p>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="card mb-4">
-            <div class="card-header">
-              <span class="card-icon">🔍</span>
-              <div class="card-title">Tính chi phí theo mã sản phẩm</div>
-            </div>
-            <div class="card-body">
-              <div class="form-group">
-                <label class="form-label">Mã hoặc Tên sản phẩm</label>
-                <div class="flex gap-3" style="position:relative">
-                  <div style="flex:1;position:relative">
-                    <input type="text" class="form-input" id="costProductCode" 
-                      placeholder="VD: TSPM — hoặc gõ tên: Trà Sữa Phúc..." 
-                      oninput="searchProductSuggest(this.value)"
-                      onkeydown="if(event.key==='Enter')calculateCostUI()"
-                      autocomplete="off">
-                    <div id="costSuggestBox" style="display:none;position:absolute;top:100%;left:0;right:0;background:white;border:1.5px solid var(--border);border-radius:8px;box-shadow:var(--shadow-md);z-index:200;max-height:240px;overflow-y:auto;margin-top:4px"></div>
-                  </div>
-                  <button class="btn btn-primary" onclick="calculateCostUI()">Tính</button>
-                </div>
-                <div class="text-xs text-muted mt-4" style="margin-top:5px">Tìm theo mã (TSPM) hoặc tên sản phẩm</div>
-              </div>
-
-              <div class="tabs">
-                <button class="tab-btn active" onclick="switchInputTab('code', this)">Mã SP</button>
-                <button class="tab-btn" onclick="switchInputTab('text', this)">Nhập tay</button>
-                <button class="tab-btn" onclick="switchInputTab('image', this)">Ảnh OCR</button>
-              </div>
-
-              <div id="tabText" style="display:none">
-                <div class="form-group">
-                  <label class="form-label">Nhập công thức thủ công</label>
-                  <textarea class="form-input form-textarea" id="recipeText" placeholder="Hồng trà nền - 200ml&#10;Trân châu đen - 80g&#10;Đường - 30ml"></textarea>
-                </div>
-                <button class="btn btn-primary" onclick="parseRecipeUI()">Phân tích công thức</button>
-              </div>
-
-              <div id="tabImage" style="display:none">
-                <div class="form-group">
-                  <label class="form-label">Upload ảnh công thức (OCR)</label>
-                  <input type="file" class="form-input" id="recipeImage" accept="image/*" onchange="handleImageOCR(this)">
-                </div>
-                <div id="ocrStatus" class="text-muted text-sm"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="card" id="costResult">
-            <div class="card-header">
-              <span class="card-icon">📋</span>
-              <div class="card-title">Kết quả tính giá vốn</div>
-            </div>
-            <div class="card-body">
-              <div class="empty-state">
-                <div class="empty-icon">🧮</div>
-                <div class="empty-title">Chưa có kết quả</div>
-                <div class="empty-desc">Nhập mã sản phẩm và bấm Tính</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== PAGE: PRODUCTS ===== -->
-    <div class="page" id="page-products">
-      <div class="page-header">
-        <h1>🥤 Danh sách sản phẩm</h1>
-        <p>Toàn bộ sản phẩm với giá vốn và COGs theo mode hiện tại</p>
-      </div>
-      <div class="card">
-        <div class="card-header flex justify-between items-center">
-          <div>
-            <div class="card-title">Sản phẩm — Mode: <span id="prodModeLabel">ĐC</span></div>
-            <div class="card-subtitle" id="prodCount">Đang tải...</div>
-          </div>
-          <div class="flex gap-3">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" class="form-input" id="prodSearch" placeholder="Tìm sản phẩm..." oninput="filterProducts()" style="width:200px">
-            </div>
-            <button class="btn btn-secondary btn-sm" onclick="loadProducts()">🔄 Làm mới</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Mã SP</th>
-                <th>Tên sản phẩm</th>
-                <th>Nhóm</th>
-                <th>Quy cách</th>
-                <th style="text-align:right">Giá vốn</th>
-                <th style="text-align:right">Giá bán</th>
-                <th style="text-align:right">COGs%</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="productsTableBody">
-              <tr><td colspan="8" class="text-center"><div class="loader"><div class="spinner"></div> Đang tải dữ liệu...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== PAGE: INGREDIENTS ===== -->
-    <div class="page" id="page-ingredients">
-      <div class="page-header">
-        <h1>🧪 Nguyên vật liệu</h1>
-        <p>Danh sách NVL và giá nhập hiện tại</p>
-      </div>
-      <div class="card">
-        <div class="card-header flex justify-between items-center">
-          <div>
-            <div class="card-title">Danh sách NVL</div>
-            <div class="card-subtitle" id="ingCount">Đang tải...</div>
-          </div>
-          <div class="flex gap-3">
-            <div class="search-wrap">
-              <span class="search-icon">🔍</span>
-              <input type="text" class="form-input" id="ingSearch" placeholder="Tìm NVL..." oninput="filterIngredients()" style="width:200px">
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="showAddIngredient()">+ Thêm NVL</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Mã</th>
-                <th>Tên NVL</th>
-                <th>Nhóm</th>
-                <th>Đơn vị lẻ</th>
-                <th style="text-align:right">Giá lẻ (đ/đvt)</th>
-                <th style="text-align:right">Giá TB</th>
-              </tr>
-            </thead>
-            <tbody id="ingredientsTableBody">
-              <tr><td colspan="6" class="text-center"><div class="loader"><div class="spinner"></div> Đang tải...</div></td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Add Ingredient Modal -->
-      <div id="addIngModal" style="display:none" class="card mt-4">
-        <div class="card-header">
-          <span class="card-icon">➕</span>
-          <div class="card-title">Thêm nguyên vật liệu mới</div>
-        </div>
-        <div class="card-body">
-          <div class="grid-2">
-            <div class="form-group">
-              <label class="form-label">Mã hàng</label>
-              <input type="text" class="form-input" id="newIngCode" placeholder="NVL0101xx">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Tên NVL</label>
-              <input type="text" class="form-input" id="newIngName" placeholder="Tên nguyên liệu">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Nhóm</label>
-              <input type="text" class="form-input" id="newIngGroup" placeholder="Nguyên vật liệu">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Đơn vị lẻ</label>
-              <input type="text" class="form-input" id="newIngUnit" placeholder="gram / ml / cái...">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Giá nhập lẻ (đ/đvt)</label>
-              <input type="number" class="form-input" id="newIngPrice" placeholder="0">
-            </div>
-          </div>
-          <div class="flex gap-3">
-            <button class="btn btn-primary" onclick="saveIngredient()">💾 Lưu NVL</button>
-            <button class="btn btn-secondary" onclick="document.getElementById('addIngModal').style.display='none'">Huỷ</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== PAGE: AI ANALYSIS ===== -->
-    <div class="page" id="page-ai">
-      <div class="page-header">
-        <h1>🤖 AI Analysis</h1>
-        <p>Phân tích chi phí thông minh bằng <strong>Claude AI</strong> — chạy thủ công hoặc tự động hàng ngày</p>
-      </div>
-
-      <div class="flex gap-3 mb-6" style="flex-wrap:wrap">
-        <button class="btn btn-primary" onclick="runAIAnalysisUI()">
-          🤖 Phân tích chi phí Claude AI
-        </button>
-        <button class="btn btn-yellow" onclick="runAIResearchUI()" style="background:linear-gradient(135deg,var(--brown),var(--brown-m));color:white">
-          🔬 AI Research — Xu hướng thị trường
-        </button>
-        <button class="btn btn-secondary" onclick="scheduleAI()">
-          🕐 Tự động hàng ngày
-        </button>
-        <div id="aiStatus" class="flex items-center gap-3 text-sm text-muted"></div>
-      </div>
-
-      <!-- AI Tabs -->
-      <div class="tabs" id="aiTabs">
-        <button class="tab-btn active" onclick="switchAITab('analysis',this)">📊 Cost Analysis</button>
-        <button class="tab-btn" onclick="switchAITab('research',this)">🔬 Market Research</button>
-      </div>
-
-      <div id="aiResultPanel">
-        <div class="empty-state">
-          <div class="empty-icon">🤖</div>
-          <div class="empty-title">Chưa có phân tích</div>
-          <div class="empty-desc">Bấm một trong hai nút AI phía trên để bắt đầu. Cần cấu hình Anthropic API Key trong Cài đặt.</div>
-        </div>
-      </div>
-      <div id="aiResearchPanel" style="display:none"></div>
-    </div>
-
-    <!-- ===== PAGE: FORECAST ===== -->
-    <div class="page" id="page-forecast">
-      <div class="page-header">
-        <h1>📈 Forecasting</h1>
-        <p>Dự báo nhu cầu nguyên vật liệu dựa trên dữ liệu bán hàng</p>
-      </div>
-
-      <!-- Forecast Mode Toggle -->
-      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;padding:14px 18px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--radius)">
-        <span style="font-size:13px;font-weight:700;color:var(--brown)">Chế độ dự báo:</span>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--brown)">
-          <input type="radio" name="forecastMode" value="standard" checked onchange="state.forecastMode='standard'"
-            style="accent-color:var(--gold);width:16px;height:16px">
-          <span>📦 Tiêu chuẩn <span style="font-size:11px;font-weight:400;color:var(--gray)">(có BTP + NVL)</span></span>
-        </label>
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;color:var(--brown)">
-          <input type="radio" name="forecastMode" value="rawonly" onchange="state.forecastMode='rawonly'"
-            style="accent-color:var(--gold);width:16px;height:16px">
-          <span>🧪 NVL thô <span style="font-size:11px;font-weight:400;color:var(--gray)">(không BTP — quy đổi hoàn toàn)</span></span>
-        </label>
-      </div>
-
-      <div class="grid-2 mb-6">
-        <div class="card">
-          <div class="card-header">
-            <span class="card-icon">📂</span>
-            <div class="card-title">Import dữ liệu bán hàng (IPOS)</div>
-          </div>
+          <div class="card-hd"><span class="card-icon">🔍</span><div class="card-title">Tìm sản phẩm</div></div>
           <div class="card-body">
             <div class="form-group">
-              <label class="form-label">Upload file Excel từ IPOS (Fabi/iPOS)</label>
-              <input type="file" class="form-input" id="salesFile" accept=".xlsx,.xls,.csv" onchange="handleSalesFile(this)">
-              <div id="salesFileStatus" class="mt-4" style="margin-top:8px"></div>
+              <label class="form-label">Mã hoặc tên sản phẩm</label>
+              <div style="position:relative">
+                <input type="text" class="form-input" id="costInput" placeholder="Gõ mã SP hoặc tên..." oninput="onCostSearch(this.value)" onkeydown="if(event.key==='Enter')calcCost()" autocomplete="off">
+                <div class="suggest-box" id="costSuggest"></div>
+              </div>
+              <div class="text-xs text-muted" style="margin-top:5px">Tìm theo Code SP (TSPM) hoặc tên</div>
+            </div>
+            <button class="btn btn-primary w-full" onclick="calcCost()">🧮 Tính giá vốn</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="card" id="costResultCard">
+          <div class="card-hd"><span class="card-icon">📋</span><div class="card-title">Kết quả</div></div>
+          <div class="card-body"><div class="empty"><div class="empty-icon">🧮</div><div class="empty-title">Nhập mã SP và bấm Tính</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ PRODUCTS ═══ -->
+  <div class="page" id="page-products">
+    <div class="page-hd"><h1>🥤 Danh sách sản phẩm</h1><p>Toàn bộ sản phẩm với giá vốn theo mode hiện tại</p></div>
+    <div class="card">
+      <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
+        <div><div class="card-title">Sản phẩm — <span id="prodModeLabel"></span></div><div class="card-sub" id="prodCount"></div></div>
+        <div class="flex gap-2">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="prodSearch" placeholder="Tìm..." oninput="filterProds()" style="width:160px"></div>
+          <button class="btn btn-secondary btn-sm" onclick="loadProducts()">↺</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Mã SP</th><th>Code IPOS</th><th>Tên sản phẩm</th><th>Nhóm</th><th style="text-align:right">Giá vốn</th><th style="text-align:right">COGs%</th><th></th></tr></thead>
+        <tbody id="prodBody"><tr><td colspan="7"><div class="loader"><div class="spin"></div>Đang tải...</div></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ NVL ═══ -->
+  <div class="page" id="page-nvl">
+    <div class="page-hd"><h1>🧪 Nguyên vật liệu</h1><p>Danh sách NVL và giá nhập hiện tại</p></div>
+    <div class="card">
+      <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
+        <div><div class="card-title">Danh sách NVL</div><div class="card-sub" id="nvlCount"></div></div>
+        <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="nvlSearch" placeholder="Tìm NVL..." oninput="filterNVL()" style="width:180px"></div>
+      </div>
+      <div class="table-wrap">
+        <table><thead><tr><th>Mã</th><th>Tên NVL</th><th>Nhóm</th><th>ĐVT lẻ</th><th style="text-align:right">Quy cách</th><th style="text-align:right">Giá lẻ</th><th style="text-align:right">Giá chẵn TB</th></tr></thead>
+        <tbody id="nvlBody"><tr><td colspan="7"><div class="loader"><div class="spin"></div>Đang tải...</div></td></tr></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ FORECAST ═══ -->
+  <div class="page" id="page-forecast">
+    <div class="page-hd"><h1>📈 Forecasting</h1><p>Dự báo nhu cầu nguyên vật liệu — tính theo trung bình ngày</p></div>
+
+    <div class="toggle-row">
+      <span class="toggle-label">Chế độ dự báo:</span>
+      <label class="radio-opt"><input type="radio" name="fcMode" value="standard" checked onchange="S.fcMode='standard'"><span>📦 Tiêu chuẩn <small style="color:var(--gray)">(BTP + NVL)</small></span></label>
+      <label class="radio-opt"><input type="radio" name="fcMode" value="rawonly" onchange="S.fcMode='rawonly'"><span>🧪 NVL thô <small style="color:var(--gray)">(quy đổi hoàn toàn)</small></span></label>
+    </div>
+
+    <div class="g2">
+      <div>
+        <div class="card">
+          <div class="card-hd"><span class="card-icon">📂</span><div class="card-title">Import dữ liệu bán hàng</div></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label class="form-label">Upload file Excel từ IPOS/Fabi</label>
+              <input type="file" class="form-input" id="salesFile" accept=".xlsx,.xls,.csv" onchange="parseSalesFile(this)">
+              <div id="fileStatus" style="margin-top:7px"></div>
             </div>
             <div class="form-group">
               <label class="form-label">Hoặc nhập thủ công (JSON)</label>
-              <textarea class="form-input form-textarea" id="salesJson" placeholder='[{"productCode":"TSPM","productName":"Trà Sữa Phúc M","quantitySold":50,"revenue":1450000}]'></textarea>
+              <textarea class="form-input form-textarea" id="salesJson" placeholder='[{"iposCode":"TSPM","productName":"Trà Sữa Phúc M","quantitySold":50}]'></textarea>
             </div>
-            <div class="form-group">
-              <label class="form-label">Số ngày dự báo</label>
-              <select class="form-input form-select" id="forecastDays">
-                <option value="7">7 ngày</option>
-                <option value="14">14 ngày</option>
-                <option value="30">30 ngày</option>
-              </select>
+            <div class="form-grid-2">
+              <div class="form-group">
+                <label class="form-label">Số ngày dữ liệu đại diện</label>
+                <input type="number" class="form-input" id="dataDays" value="1" min="1" max="365" placeholder="1">
+                <div class="text-xs text-muted" style="margin-top:4px">VD: data 1 ngày → nhập 1</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Dự báo cho</label>
+                <select class="form-input form-select" id="fcDays">
+                  <option value="7">7 ngày</option>
+                  <option value="14">14 ngày</option>
+                  <option value="21">21 ngày</option>
+                  <option value="30">30 ngày</option>
+                </select>
+              </div>
             </div>
-            <button class="btn btn-primary" onclick="runForecastUI()">📈 Tạo dự báo</button>
-          </div>
-        </div>
-
-        <div class="card" id="forecastSummary">
-          <div class="card-header">
-            <span class="card-icon">📊</span>
-            <div class="card-title">Tổng quan dự báo</div>
-          </div>
-          <div class="card-body">
-            <div class="empty-state">
-              <div class="empty-icon">📈</div>
-              <div class="empty-title">Chưa có dự báo</div>
-              <div class="empty-desc">Upload dữ liệu bán hàng để bắt đầu</div>
-            </div>
+            <button class="btn btn-primary w-full" onclick="runForecast()">📈 Tạo dự báo</button>
           </div>
         </div>
       </div>
-
-      <div id="forecastResult"></div>
-    </div>
-
-    <!-- ===== PAGE: SETTINGS ===== -->
-    <div class="page" id="page-settings">
-      <div class="page-header">
-        <h1>⚙️ Cài đặt hệ thống</h1>
-        <p>Cấu hình kết nối Google Sheets, Apps Script và OpenAI</p>
-      </div>
-
-      <div class="settings-section">
-        <div class="card settings-card">
-          <div class="card-header">
-            <span class="card-icon">🔌</span>
-            <div class="card-title">Kết nối Apps Script</div>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Apps Script Web App URL</label>
-              <input type="url" class="form-input" id="settingsAppsUrl" placeholder="https://script.google.com/macros/s/.../exec">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Google Sheet ID</label>
-              <input type="text" class="form-input" id="settingsSheetId" placeholder="12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg">
-            </div>
-            <button class="btn btn-primary" onclick="testConnection()">🔗 Kiểm tra kết nối</button>
-            <div id="connTestResult" class="mt-4"></div>
-          </div>
-        </div>
-
-        <div class="card settings-card">
-          <div class="card-header">
-            <span class="card-icon">✨</span>
-            <div class="card-title">Anthropic API (Claude)</div>
-          </div>
-          <div class="card-body">
-            <div class="form-group">
-              <label class="form-label">Anthropic API Key</label>
-              <input type="password" class="form-input" id="settingsOpenAI" placeholder="sk-ant-...">
-              <div class="text-xs text-muted mt-4" style="margin-top:6px">⚠️ Key được lưu trong localStorage · Lấy tại <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="flex gap-3">
-          <button class="btn btn-primary" onclick="saveSettings()">💾 Lưu cài đặt</button>
-          <button class="btn btn-secondary" onclick="loadSettings()">↩️ Khôi phục</button>
-        </div>
-
-        <div id="settingsSaved" class="mt-4"></div>
-
-        <div class="card settings-card mt-4">
-          <div class="card-header">
-            <span class="card-icon">📋</span>
-            <div class="card-title">Hướng dẫn cài đặt nhanh</div>
-          </div>
-          <div class="card-body">
-            <ol style="padding-left:18px;line-height:2;font-size:13px;color:var(--gray-600)">
-              <li>Mở Google Sheet: <a href="https://docs.google.com/spreadsheets/d/12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg" target="_blank" style="color:var(--green-600)">Click vào đây</a></li>
-              <li>Vào Extensions → Apps Script → Dán nội dung file <strong>Code.gs</strong></li>
-              <li>Deploy → New deployment → Web App → Anyone → Copy URL</li>
-              <li>Dán URL vào ô "Apps Script Web App URL" phía trên</li>
-              <li>Nhập <strong>Anthropic API Key</strong> để dùng AI — lấy miễn phí tại <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></li>
-              <li>Bấm <strong>Lưu cài đặt</strong> và <strong>Kiểm tra kết nối</strong></li>
-            </ol>
-          </div>
+      <div id="fcSummaryCard">
+        <div class="card">
+          <div class="card-hd"><span class="card-icon">📊</span><div class="card-title">Tổng quan dự báo</div></div>
+          <div class="card-body"><div class="empty"><div class="empty-icon">📈</div><div class="empty-title">Chưa có dự báo</div><div class="empty-sub">Upload dữ liệu và bấm Tạo dự báo</div></div></div>
         </div>
       </div>
     </div>
+    <div id="fcResult"></div>
+  </div>
 
-  </main>
-</div>
+  <!-- ═══ ORDER ═══ -->
+  <div class="page" id="page-order">
+    <div class="page-hd"><h1>📦 Quy đổi đặt hàng</h1><p>Chuyển dự báo NVL thành số lượng cần đặt theo quy cách đóng gói</p></div>
+    <div id="orderPanel">
+      <div class="alert alert-info">Cần chạy Forecast trước, sau đó bấm "Quy đổi thành đơn hàng" ở trang Forecasting.</div>
+    </div>
+    <div id="orderResult"></div>
+  </div>
 
-<!-- ===== SCRIPTS ===== -->
+  <!-- ═══ AI ═══ -->
+  <div class="page" id="page-ai">
+    <div class="page-hd"><h1>🤖 AI Analysis</h1><p>Phân tích chi phí & nghiên cứu thị trường bằng <strong>Claude AI</strong></p></div>
+    <div class="btn-group mb-4">
+      <button class="btn btn-primary" onclick="runAICost()">🤖 Phân tích chi phí</button>
+      <button class="btn btn-secondary" onclick="runAIResearch()" style="background:linear-gradient(135deg,var(--brown),var(--brown-m));color:white;border:none">🔬 AI Research — Xu hướng R&D</button>
+    </div>
+    <div class="tabs" id="aiTabs">
+      <button class="tab-btn active" onclick="switchAITab('cost',this)">📊 Cost Analysis</button>
+      <button class="tab-btn" onclick="switchAITab('research',this)">🔬 Market Research</button>
+    </div>
+    <div id="aiCostPanel"><div class="empty"><div class="empty-icon">🤖</div><div class="empty-title">Chưa có phân tích</div><div class="empty-sub">Bấm nút phía trên</div></div></div>
+    <div id="aiResearchPanel" style="display:none"></div>
+  </div>
+
+  <!-- ═══ SETTINGS ═══ -->
+  <div class="page" id="page-settings">
+    <div class="page-hd"><h1>⚙️ Cài đặt</h1><p>Cấu hình kết nối Google Apps Script và Anthropic API</p></div>
+    <div style="max-width:560px">
+      <div class="card mb-4">
+        <div class="card-hd"><span class="card-icon">🔌</span><div class="card-title">Apps Script</div></div>
+        <div class="card-body">
+          <div class="form-group"><label class="form-label">Web App URL</label><input type="url" class="form-input" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+          <button class="btn btn-primary btn-sm" onclick="testConn()">🔗 Kiểm tra kết nối</button>
+          <div id="connTest" style="margin-top:10px"></div>
+        </div>
+      </div>
+      <div class="card mb-4">
+        <div class="card-hd"><span class="card-icon">🤖</span><div class="card-title">Anthropic API (Claude)</div></div>
+        <div class="card-body">
+          <div class="form-group"><label class="form-label">API Key</label><input type="password" class="form-input" id="cfgKey" placeholder="sk-ant-..."><div class="text-xs text-muted" style="margin-top:5px">Lưu trong localStorage · <a href="https://console.anthropic.com" target="_blank" style="color:var(--gold)">console.anthropic.com</a></div></div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="saveSettings()">💾 Lưu cài đặt</button>
+        <button class="btn btn-secondary" onclick="loadSettings()">↩ Khôi phục</button>
+      </div>
+      <div id="cfgMsg" style="margin-top:12px"></div>
+      <div class="card mt-3" style="margin-top:16px">
+        <div class="card-hd"><span class="card-icon">📋</span><div class="card-title">Hướng dẫn cài đặt</div></div>
+        <div class="card-body">
+          <ol style="padding-left:16px;line-height:2.2;font-size:13px;color:var(--gray)">
+            <li>Mở <a href="https://docs.google.com/spreadsheets/d/12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg" target="_blank" style="color:var(--gold)">Google Sheet</a></li>
+            <li>Extensions → Apps Script → Dán nội dung <strong>Code.gs</strong></li>
+            <li>Deploy → New deployment → Web App → Anyone → Copy URL</li>
+            <li>Dán URL vào ô trên → Lưu cài đặt → Kiểm tra kết nối</li>
+            <li>Nhập Anthropic API Key để dùng AI Analysis</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
 <script>
 // ============================================================
 // STATE
 // ============================================================
-const state = {
-  mode: 'ĐC',
-  forecastMode: 'standard',
-  settings: {},
+var S = {
+  mode: 'DC',
+  fcMode: 'standard',
+  url: '',
+  apiKey: '',
   products: [],
-  ingredients: [],
-  lastAIRun: null,
-  _recipes: null,
-  _btpRecipes: null
+  nvl: [],
+  lastForecast: null,
+  lastForecastRaw: null
 };
+
+var MODE_LABELS = { DC: '⚖️ Đường Chung', TD: '🍯 Tách Đường', TH: '🌸 Trà Hoa' };
+var MODE_SHORTS = { DC: 'ĐC', TD: 'TĐ', TH: 'TH' };
 
 // ============================================================
 // SETTINGS
 // ============================================================
 function loadSettings() {
-  state.settings = {
-    appsUrl: localStorage.getItem('pt_appsUrl') || '',
-    sheetId: localStorage.getItem('pt_sheetId') || '12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg',
-    openaiKey: localStorage.getItem('pt_openaiKey') || ''
-  };
-  document.getElementById('settingsAppsUrl').value = state.settings.appsUrl;
-  document.getElementById('settingsSheetId').value = state.settings.sheetId;
-  document.getElementById('settingsOpenAI').value = state.settings.openaiKey;
-  updateConnStatus();
+  S.url    = localStorage.getItem('pt_url')    || '';
+  S.apiKey = localStorage.getItem('pt_apiKey') || '';
+  document.getElementById('cfgUrl').value  = S.url;
+  document.getElementById('cfgKey').value  = S.apiKey;
+  updateConnDot();
 }
 
 function saveSettings() {
-  const url = document.getElementById('settingsAppsUrl').value.trim();
-  const sheetId = document.getElementById('settingsSheetId').value.trim();
-  const openaiKey = document.getElementById('settingsOpenAI').value.trim();
-  localStorage.setItem('pt_appsUrl', url);
-  localStorage.setItem('pt_sheetId', sheetId);
-  localStorage.setItem('pt_openaiKey', openaiKey);
-  state.settings = { appsUrl: url, sheetId, openaiKey };
-  document.getElementById('settingsSaved').innerHTML = `<div class="alert alert-success">✅ Đã lưu cài đặt!</div>`;
-  setTimeout(() => document.getElementById('settingsSaved').innerHTML = '', 3000);
-  updateConnStatus();
+  S.url    = document.getElementById('cfgUrl').value.trim();
+  S.apiKey = document.getElementById('cfgKey').value.trim();
+  localStorage.setItem('pt_url',    S.url);
+  localStorage.setItem('pt_apiKey', S.apiKey);
+  document.getElementById('cfgMsg').innerHTML = '<div class="alert alert-ok">✅ Đã lưu!</div>';
+  setTimeout(function(){ document.getElementById('cfgMsg').innerHTML=''; }, 2500);
+  updateConnDot();
 }
 
-function updateConnStatus() {
-  const dot = document.getElementById('connStatus');
-  if (state.settings.appsUrl) {
-    dot.className = 'status-dot status-online';
-    dot.title = 'Đã cấu hình Apps Script';
-  } else {
-    dot.className = 'status-dot status-offline';
-    dot.title = 'Chưa cấu hình Apps Script URL';
-  }
+function updateConnDot() {
+  var dot = document.getElementById('connDot');
+  dot.className = 'status-dot ' + (S.url ? 'dot-on' : 'dot-off');
+  dot.title = S.url ? 'Đã cấu hình' : 'Chưa cấu hình URL';
 }
 
-async function testConnection() {
-  const el = document.getElementById('connTestResult');
-  el.innerHTML = '<div class="loader"><div class="spinner"></div> Đang kiểm tra...</div>';
+async function testConn() {
+  var el = document.getElementById('connTest');
+  el.innerHTML = '<div class="loader"><div class="spin"></div>Đang kiểm tra...</div>';
   try {
-    const res = await callAppsScript({ action: 'ping' });
-    if (res.status === 'ok') {
-      el.innerHTML = `<div class="alert alert-success">✅ Kết nối thành công! Server time: ${res.timestamp}</div>`;
-      document.getElementById('connStatus').className = 'status-dot status-online';
-    } else {
-      el.innerHTML = `<div class="alert alert-error">❌ Lỗi: ${JSON.stringify(res)}</div>`;
-    }
+    var r = await api({ action: 'ping' });
+    el.innerHTML = '<div class="alert alert-ok">✅ Kết nối OK — ' + (r.ts || '') + '</div>';
+    document.getElementById('connDot').className = 'status-dot dot-on';
   } catch(e) {
-    el.innerHTML = `<div class="alert alert-error">❌ Không thể kết nối: ${e.message}</div>`;
+    el.innerHTML = '<div class="alert alert-err">❌ ' + e.message + '</div>';
   }
 }
 
 // ============================================================
-// API CALLS
+// API
 // ============================================================
-async function callAppsScript(params) {
-  const url = state.settings.appsUrl;
-  if (!url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt để nhập.');
-
-  // GAS Web App: must use GET to avoid CORS "Failed to fetch"
-  const qs = new URLSearchParams();
-  qs.set('action', params.action);
-  qs.set('mode', state.mode);
-  const skip = new Set(['action', 'mode']);
-  for (const [k, v] of Object.entries(params)) {
-    if (skip.has(k)) continue;
-    if (typeof v === 'object' && v !== null) {
-      qs.set(k, encodeURIComponent(JSON.stringify(v)));
-    } else if (v !== undefined && v !== null) {
-      qs.set(k, String(v));
-    }
-  }
-
-  const response = await fetch(`${url}?${qs.toString()}`, {
-    method: 'GET',
-    redirect: 'follow'
+async function api(params) {
+  if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
+  var qs = new URLSearchParams();
+  Object.keys(params).forEach(function(k) {
+    var v = params[k];
+    if (v === undefined || v === null) return;
+    if (typeof v === 'object') qs.set(k, encodeURIComponent(JSON.stringify(v)));
+    else qs.set(k, String(v));
   });
-  if (!response.ok) throw new Error('HTTP ' + response.status + ': ' + response.statusText);
-  const text = await response.text();
-  try { return JSON.parse(text); }
-  catch(e) { throw new Error('Phản hồi không hợp lệ. Kiểm tra Apps Script URL & quyền truy cập.'); }
+  qs.set('mode', S.mode);
+  var res = await fetch(S.url + '?' + qs.toString(), { method: 'GET', redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  var text = await res.text();
+  try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
 }
 
 // ============================================================
-// MODE SWITCHING
+// MODE
 // ============================================================
-function setMode(mode) {
-  state.mode = mode;
-  document.getElementById('modeBtn_DC').classList.toggle('active', mode === 'ĐC');
-  document.getElementById('modeBtn_TD').classList.toggle('active', mode === 'TĐ');
-  document.getElementById('topbarMode').textContent = mode === 'ĐC' ? '⚖️ Đường Chung' : '🍯 Tách Đường';
-  // Reload current page data
-  const activePage = document.querySelector('.page.active')?.id;
-  if (activePage === 'page-dashboard') loadDashboard();
-  else if (activePage === 'page-products') loadProducts();
+function setMode(m) {
+  S.mode = m;
+  ['DC','TD','TH'].forEach(function(k) {
+    document.getElementById('mBtn_'+k).classList.toggle('active', k===m);
+  });
+  document.getElementById('modeBadge').textContent = MODE_LABELS[m];
+  // refresh active page
+  var ap = document.querySelector('.page.active');
+  if (ap) {
+    var pid = ap.id.replace('page-','');
+    if (pid==='dash') loadDash();
+    else if (pid==='products') loadProducts();
+    else if (pid==='cost') { document.getElementById('costModeLabel').textContent = MODE_LABELS[m]; }
+  }
+  toast(MODE_LABELS[m] + ' đã được chọn', 'info');
 }
 
 // ============================================================
 // NAVIGATION
 // ============================================================
-const pageNames = {
-  dashboard: 'Dashboard',
-  costengine: 'Cost Engine',
-  products: 'Sản phẩm',
-  ingredients: 'Nguyên vật liệu',
-  ai: 'AI Analysis',
-  forecast: 'Forecasting',
-  settings: 'Cài đặt'
-};
+var PAGE_TITLES = { dash:'Dashboard', cost:'Cost Engine', products:'Sản phẩm', nvl:'Nguyên vật liệu', forecast:'Forecasting', order:'Đặt hàng', ai:'AI Analysis', settings:'Cài đặt' };
 
-function showPage(pageId) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('page-' + pageId).classList.add('active');
-  document.getElementById('nav-' + pageId).classList.add('active');
-  document.getElementById('topbarTitle').textContent = pageNames[pageId] || pageId;
+function nav(pid) {
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.getElementById('page-'+pid).classList.add('active');
+  document.getElementById('nav-'+pid).classList.add('active');
+  document.getElementById('pageTitle').textContent = PAGE_TITLES[pid] || pid;
+  closeSidebar();
+  // lazy load
+  if (pid==='dash') loadDash();
+  else if (pid==='products') loadProducts();
+  else if (pid==='nvl') loadNVL();
+  else if (pid==='cost') document.getElementById('costModeLabel').textContent = MODE_LABELS[S.mode];
+}
 
-  // Lazy load data
-  if (pageId === 'dashboard') loadDashboard();
-  else if (pageId === 'products') loadProducts();
-  else if (pageId === 'ingredients') loadIngredients();
+function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n) { if (!n && n!==0) return '—'; return Math.round(n).toLocaleString('vi-VN')+'đ'; }
+function fmtNum(n, dec) { if (!n && n!==0) return '—'; return (dec?n.toFixed(dec):Math.round(n)).toLocaleString('vi-VN'); }
+
+function cogsBadge(c) {
+  if (!c||c<=0) return '<span class="badge badge-gray">—</span>';
+  var pct = c>1?c:c*100;
+  if (pct>100) return '<span class="badge badge-gray">—</span>';
+  var p = pct.toFixed(1)+'%';
+  if (pct<28) return '<span class="badge badge-green">'+p+'</span>';
+  if (pct<35) return '<span class="badge badge-gold">'+p+'</span>';
+  return '<span class="badge badge-red">'+p+'</span>';
+}
+
+function toast(msg, type) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type||'info');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 3200);
 }
 
 // ============================================================
-// FORMAT HELPERS
+// SYNC
 // ============================================================
-function fmt(n) {
-  if (!n && n !== 0) return '—';
-  return Math.round(n).toLocaleString('vi-VN') + 'đ';
-}
-function pct(n) {
-  return n ? (n * 100).toFixed(1) + '%' : '—';
-}
-function cogsClass(cogs) {
-  if (!cogs) return '';
-  if (cogs < 0.28) return 'low';
-  if (cogs < 0.35) return 'mid';
-  return 'high';
-}
-function cogsBadge(cogs) {
-  if (!cogs || cogs <= 0) return '<span class="badge badge-gray">—</span>';
-  // If value > 1, it's already a percentage (e.g. 28.5), else it's decimal (0.285)
-  const pct = cogs > 1 ? cogs : cogs * 100;
-  if (pct > 100) return '<span class="badge badge-gray">—</span>'; // data error
-  const p = pct.toFixed(1);
-  if (pct < 28) return `<span class="badge badge-green">${p}%</span>`;
-  if (pct < 35) return `<span class="badge badge-yellow">${p}%</span>`;
-  return `<span class="badge badge-red">${p}%</span>`;
+async function syncData() {
+  var btn = document.getElementById('syncBtn');
+  btn.disabled = true; btn.textContent = '⏳ Đang đồng bộ...';
+  try {
+    var t0 = Date.now();
+    var [pr, nr] = await Promise.all([api({action:'getAllCosts'}), api({action:'getMaterials'})]);
+    if (pr.data) S.products = pr.data;
+    if (nr.data) S.nvl = nr.data;
+    toast('Đồng bộ OK — '+(Date.now()-t0)+'ms | '+S.products.length+' SP, '+S.nvl.length+' NVL', 'ok');
+    var ap = document.querySelector('.page.active');
+    if (ap) {
+      var pid = ap.id.replace('page-','');
+      if (pid==='dash') loadDash();
+      else if (pid==='products') renderProducts(S.products);
+      else if (pid==='nvl') renderNVL(S.nvl);
+    }
+  } catch(e) { toast('Lỗi đồng bộ: '+e.message, 'err'); }
+  btn.textContent = '🔄 Đồng bộ'; btn.disabled = false;
 }
 
 // ============================================================
 // DASHBOARD
 // ============================================================
-async function loadDashboard() {
+async function loadDash() {
+  setDashLoading();
   try {
-    const res = await callAppsScript({ action: 'getAllProductCosts' });
-    if (res.error) { showDashError(res.error); return; }
-
-    state.products = res.data || [];
-    // Also pre-load full product list for name search
-    if (!state.allProducts || !state.allProducts.length) {
-      callAppsScript({ action: 'getProducts' }).then(r => {
-        if (r.data) state.products = [...new Map([...state.products, ...r.data].map(p=>[p.code,p])).values()];
-      }).catch(()=>{});
-    }
-    const prods = state.products.filter(p => p.cost > 0);
-    const avgCost = prods.reduce((s,p) => s + p.cost, 0) / (prods.length || 1);
-    const avgCogs = prods.filter(p=>p.cogs>0).reduce((s,p) => s + p.cogs, 0) / (prods.filter(p=>p.cogs>0).length || 1);
-    const highCogs = prods.filter(p => p.cogs > 0.35).length;
-
-    document.getElementById('statTotal').textContent = res.count;
-    document.getElementById('statAvgCost').textContent = Math.round(avgCost).toLocaleString('vi-VN');
-    document.getElementById('statAvgCogs').textContent = (avgCogs * 100).toFixed(1) + '%';
-    document.getElementById('statHighCogs').textContent = highCogs;
-
-    // Top COGs
-    const byCogs = [...prods].filter(p=>p.cogs>0).sort((a,b)=>b.cogs-a.cogs).slice(0,10);
-    document.getElementById('topCogsTable').innerHTML = renderMiniTable(byCogs, 'cogs');
-
-    // Top Cost
-    const byCost = [...prods].sort((a,b)=>b.cost-a.cost).slice(0,10);
-    document.getElementById('topCostTable').innerHTML = renderMiniTable(byCost, 'cost');
-
-  } catch(e) {
-    showDashError(e.message);
-  }
+    var r = await api({ action: 'getAllCosts' });
+    if (r.error) { dashErr(r.error); return; }
+    S.products = r.data || [];
+    renderDash();
+  } catch(e) { dashErr(e.message); }
 }
 
-function renderMiniTable(items, sortBy) {
-  if (!items.length) return '<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">Không có dữ liệu</div></div>';
-  return `<div class="table-wrap"><table>
-    <thead><tr><th>Tên SP</th><th style="text-align:right">Giá vốn</th><th style="text-align:right">COGs</th></tr></thead>
-    <tbody>${items.map(p => `
-      <tr>
-        <td><div style="font-size:12px;font-weight:600">${p.name}</div><div class="td-code">${p.code}</div></td>
-        <td class="td-money" style="text-align:right">${fmt(p.cost)}</td>
-        <td style="text-align:right">${cogsBadge(p.cogs)}</td>
-      </tr>`).join('')}
-    </tbody></table></div>`;
+function setDashLoading() {
+  document.getElementById('topCogsEl').innerHTML = '<div class="loader"><div class="spin"></div>Đang tải...</div>';
+  document.getElementById('topCostEl').innerHTML = '<div class="loader"><div class="spin"></div>Đang tải...</div>';
 }
 
-function showDashError(msg) {
-  const html = `<div class="alert alert-warning">⚠️ ${msg} — Kiểm tra cài đặt Apps Script URL</div>`;
-  document.getElementById('topCogsTable').innerHTML = html;
-  document.getElementById('topCostTable').innerHTML = html;
+function dashErr(msg) {
+  var h = '<div class="alert alert-err">⚠️ '+msg+' — Kiểm tra cài đặt</div>';
+  document.getElementById('topCogsEl').innerHTML = h;
+  document.getElementById('topCostEl').innerHTML = h;
+}
+
+function renderDash() {
+  var prods = S.products.filter(function(p){ return p.cost>0; });
+  var avgCost = prods.length ? prods.reduce(function(s,p){return s+p.cost;},0)/prods.length : 0;
+  var cogsProds = prods.filter(function(p){return p.cogs>0;});
+  var avgCogs = cogsProds.length ? cogsProds.reduce(function(s,p){return s+p.cogs;},0)/cogsProds.length : 0;
+  var highCogs = prods.filter(function(p){ var c=p.cogs>1?p.cogs:p.cogs*100; return c>35; }).length;
+  document.getElementById('st-total').textContent  = S.products.length;
+  document.getElementById('st-avgcost').textContent = Math.round(avgCost).toLocaleString('vi-VN');
+  document.getElementById('st-cogs').textContent   = (avgCogs*100).toFixed(1)+'%';
+  document.getElementById('st-highcogs').textContent = highCogs;
+  var byCogs = cogsProds.slice().sort(function(a,b){return b.cogs-a.cogs;}).slice(0,10);
+  var byCost = prods.slice().sort(function(a,b){return b.cost-a.cost;}).slice(0,10);
+  document.getElementById('topCogsEl').innerHTML = miniTable(byCogs);
+  document.getElementById('topCostEl').innerHTML  = miniTable(byCost);
+}
+
+function miniTable(items) {
+  if (!items.length) return '<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Không có dữ liệu</div></div>';
+  return '<div class="table-wrap"><table><thead><tr><th>Tên SP</th><th style="text-align:right">Giá vốn</th><th style="text-align:right">COGs</th></tr></thead><tbody>'+
+    items.map(function(p){
+      return '<tr><td><div style="font-size:12px;font-weight:600">'+p.name+'</div><div class="td-code">'+p.code+'</div></td><td class="td-cost">'+fmt(p.cost)+'</td><td style="text-align:right">'+cogsBadge(p.cogs)+'</td></tr>';
+    }).join('')+'</tbody></table></div>';
 }
 
 // ============================================================
 // PRODUCTS
 // ============================================================
 async function loadProducts() {
-  document.getElementById('prodModeLabel').textContent = state.mode;
-  document.getElementById('productsTableBody').innerHTML =
-    '<tr><td colspan="8"><div class="loader"><div class="spinner"></div> Đang tải...</div></td></tr>';
+  document.getElementById('prodModeLabel').textContent = MODE_LABELS[S.mode];
+  document.getElementById('prodBody').innerHTML = '<tr><td colspan="7"><div class="loader"><div class="spin"></div>Đang tải...</div></td></tr>';
   try {
-    const res = await callAppsScript({ action: 'getProducts' });
-    if (res.error) throw new Error(res.error);
-    state.products = res.data || [];
-    document.getElementById('prodCount').textContent = `${res.count} sản phẩm`;
-    renderProductsTable(state.products);
+    var r = await api({ action: 'getAllCosts' });
+    if (r.error) throw new Error(r.error);
+    S.products = r.data || [];
+    document.getElementById('prodCount').textContent = r.count + ' sản phẩm';
+    renderProducts(S.products);
   } catch(e) {
-    document.getElementById('productsTableBody').innerHTML =
-      `<tr><td colspan="8"><div class="alert alert-error">❌ ${e.message}</div></td></tr>`;
+    document.getElementById('prodBody').innerHTML = '<tr><td colspan="7"><div class="alert alert-err">'+e.message+'</div></td></tr>';
   }
 }
 
-function renderProductsTable(products) {
-  if (!products.length) {
-    document.getElementById('productsTableBody').innerHTML =
-      '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--gray-400)">Không tìm thấy sản phẩm</td></tr>';
-    return;
+function renderProducts(list) {
+  if (!list.length) { document.getElementById('prodBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray)">Không tìm thấy</td></tr>'; return; }
+  document.getElementById('prodBody').innerHTML = list.map(function(p){
+    return '<tr><td><span class="td-code">'+p.code+'</span></td><td><span class="td-code">'+p.iposCode+'</span></td><td style="font-weight:600">'+p.name+'</td><td><span class="badge badge-gray">'+(p.group||'—')+'</span></td><td class="td-cost">'+fmt(p.cost)+'</td><td style="text-align:right">'+cogsBadge(p.cogs)+'</td><td><button class="btn btn-secondary btn-xs" onclick="quickCost(\''+p.code+'\')">Tính</button></td></tr>';
+  }).join('');
+}
+
+function filterProds() {
+  var q = document.getElementById('prodSearch').value.toLowerCase().trim();
+  if (!q) { renderProducts(S.products); return; }
+  renderProducts(S.products.filter(function(p){ return (p.name||'').toLowerCase().includes(q)||(p.code||'').toLowerCase().includes(q)||(p.iposCode||'').toLowerCase().includes(q); }));
+}
+
+function quickCost(code) { nav('cost'); document.getElementById('costInput').value=code; calcCost(); }
+
+// ============================================================
+// NVL
+// ============================================================
+async function loadNVL() {
+  document.getElementById('nvlBody').innerHTML = '<tr><td colspan="7"><div class="loader"><div class="spin"></div>Đang tải...</div></td></tr>';
+  try {
+    var r = await api({ action: 'getMaterials' });
+    if (r.error) throw new Error(r.error);
+    S.nvl = r.data || [];
+    document.getElementById('nvlCount').textContent = r.count + ' nguyên vật liệu';
+    renderNVL(S.nvl);
+  } catch(e) {
+    document.getElementById('nvlBody').innerHTML = '<tr><td colspan="7"><div class="alert alert-err">'+e.message+'</div></td></tr>';
   }
-  document.getElementById('productsTableBody').innerHTML = products.map(p => `
-    <tr>
-      <td><span class="td-code">${p.code || '—'}</span></td>
-      <td><span style="font-weight:600">${p.name || '—'}</span></td>
-      <td><span class="badge badge-gray">${p.group || '—'}</span></td>
-      <td>${p.size || p.unit || '—'}</td>
-      <td class="td-money" style="text-align:right">${fmt(p.cost)}</td>
-      <td class="td-money" style="text-align:right">${fmt(p.price1)}</td>
-      <td style="text-align:right">${cogsBadge(p.cogs1)}</td>
-      <td><button class="btn btn-secondary btn-sm" onclick="quickCost('${p.code}')">Tính</button></td>
-    </tr>`).join('');
 }
 
-function filterProducts() {
-  const q = document.getElementById('prodSearch').value.toLowerCase().trim();
-  if (!q) { renderProductsTable(state.products); return; }
-  const filtered = state.products.filter(p =>
-    (p.name || '').toLowerCase().includes(q) ||
-    (p.code || '').toLowerCase().includes(q) ||
-    (p.group || '').toLowerCase().includes(q)
-  );
-  renderProductsTable(filtered);
+function renderNVL(list) {
+  if (!list.length) { document.getElementById('nvlBody').innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--gray)">Không có NVL</td></tr>'; return; }
+  document.getElementById('nvlBody').innerHTML = list.map(function(n){
+    return '<tr><td><span class="td-code">'+n.code+'</span></td><td style="font-weight:600">'+n.name+'</td><td><span class="badge badge-gray">'+(n.group||'—')+'</span></td><td>'+n.unitLe+'</td><td class="td-num">'+(n.packSize||'—')+'</td><td class="td-num">'+(n.priceLe?n.priceLe.toLocaleString('vi-VN')+'đ':'—')+'</td><td class="td-num">'+(n.priceChan?Math.round(n.priceChan).toLocaleString('vi-VN')+'đ':'—')+'</td></tr>';
+  }).join('');
 }
 
-function quickCost(code) {
-  showPage('costengine');
-  document.getElementById('costProductCode').value = code;
-  document.getElementById('costSuggestBox').style.display = 'none';
-  calculateCostUI();
+function filterNVL() {
+  var q = document.getElementById('nvlSearch').value.toLowerCase().trim();
+  if (!q) { renderNVL(S.nvl); return; }
+  renderNVL(S.nvl.filter(function(n){ return (n.name||'').toLowerCase().includes(q)||(n.code||'').toLowerCase().includes(q); }));
 }
-
-function searchProductSuggest(q) {
-  const box = document.getElementById('costSuggestBox');
-  const val = q.trim().toLowerCase();
-  if (!val || !state.products.length) { box.style.display = 'none'; return; }
-  
-  const matches = state.products.filter(p =>
-    (p.name || '').toLowerCase().includes(val) ||
-    (p.code || '').toLowerCase().includes(val)
-  ).slice(0, 8);
-
-  if (!matches.length) { box.style.display = 'none'; return; }
-
-  box.innerHTML = matches.map(p => `
-    <div onclick="selectProductSuggest('${p.code}','${(p.name||'').replace(/'/g,"\'")}','${p.group||''}')"
-      style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px"
-      onmouseenter="this.style.background='var(--gold-l)'" onmouseleave="this.style.background=''">
-      <div>
-        <div style="font-size:13px;font-weight:600;color:var(--brown)">${p.name || '—'}</div>
-        <div style="font-size:11px;color:var(--brown-m);font-family:monospace">${p.code} · ${p.group || ''}</div>
-      </div>
-      <div style="margin-left:auto;font-size:12px;font-weight:700;color:var(--gold)">${fmt(p.cost)}</div>
-    </div>`).join('');
-  box.style.display = 'block';
-}
-
-function selectProductSuggest(code, name, group) {
-  document.getElementById('costProductCode').value = code;
-  document.getElementById('costSuggestBox').style.display = 'none';
-  calculateCostUI();
-}
-
-// Close suggest box when clicking outside
-document.addEventListener('click', function(e) {
-  const box = document.getElementById('costSuggestBox');
-  if (box && !box.contains(e.target) && e.target.id !== 'costProductCode') {
-    box.style.display = 'none';
-  }
-});
 
 // ============================================================
 // COST ENGINE
 // ============================================================
-async function calculateCostUI() {
-  let code = document.getElementById('costProductCode').value.trim();
-  if (!code) return;
-  document.getElementById('costSuggestBox').style.display = 'none';
+function onCostSearch(v) {
+  var box = document.getElementById('costSuggest');
+  var q = v.trim().toLowerCase();
+  if (!q || !S.products.length) { box.style.display='none'; return; }
+  var matches = S.products.filter(function(p){ return (p.name||'').toLowerCase().includes(q)||(p.code||'').toLowerCase().includes(q); }).slice(0,7);
+  if (!matches.length) { box.style.display='none'; return; }
+  box.innerHTML = matches.map(function(p){
+    return '<div class="suggest-item" onclick="pickCost(\''+p.code+'\')"><div><div style="font-size:12px;font-weight:600">'+p.name+'</div><div class="td-code">'+p.code+' · '+p.iposCode+'</div></div><div style="font-size:12px;font-weight:700;color:var(--gold)">'+fmt(p.cost)+'</div></div>';
+  }).join('');
+  box.style.display = 'block';
+}
+function pickCost(code) { document.getElementById('costInput').value=code; document.getElementById('costSuggest').style.display='none'; calcCost(); }
 
-  // If input looks like a name (not a code pattern), resolve to code
-  if (state.products.length && !/^[A-Z0-9_]+$/.test(code)) {
-    const q = code.toLowerCase();
-    const match = state.products.find(p =>
-      (p.name || '').toLowerCase().includes(q) ||
-      (p.code || '').toLowerCase() === q
-    );
-    if (match) {
-      code = match.code;
-      document.getElementById('costProductCode').value = code;
-    }
+document.addEventListener('click', function(e){ if(e.target.id!=='costInput') document.getElementById('costSuggest').style.display='none'; });
+
+async function calcCost() {
+  var code = document.getElementById('costInput').value.trim();
+  document.getElementById('costSuggest').style.display='none';
+  if (!code) { toast('Nhập mã sản phẩm', 'err'); return; }
+  // resolve by name if needed
+  if (S.products.length && !/^[A-Z0-9_]{2,20}$/.test(code)) {
+    var q = code.toLowerCase();
+    var found = S.products.find(function(p){ return (p.name||'').toLowerCase().includes(q); });
+    if (found) { code=found.code; document.getElementById('costInput').value=code; }
   }
-
-  const resultEl = document.getElementById('costResult');
-  resultEl.innerHTML = `<div class="card-header"><span class="card-icon">📋</span><div class="card-title">Đang tính...</div></div>
-    <div class="card-body"><div class="loader"><div class="spinner"></div> Đang tính giá vốn...</div></div>`;
-
+  var el = document.getElementById('costResultCard');
+  el.querySelector('.card-body').innerHTML = '<div class="loader"><div class="spin"></div>Đang tính...</div>';
   try {
-    const res = await callAppsScript({ action: 'calculateCost', productCode: code });
-    if (res.error) {
-      resultEl.innerHTML = `<div class="card-header"><span class="card-icon">❌</span><div class="card-title">Lỗi</div></div>
-        <div class="card-body"><div class="alert alert-error">${res.error}</div></div>`;
-      return;
-    }
-
-    const maxSubtotal = Math.max(...res.breakdown.map(b => b.subtotal));
-    const breakedownHTML = res.breakdown.map(b => {
-      const barPct = maxSubtotal > 0 ? (b.subtotal / maxSubtotal * 100) : 0;
-      return `<div style="margin-bottom:12px">
-        <div class="flex justify-between items-center">
-          <div>
-            <div style="font-size:13px;font-weight:600">${b.name}</div>
-            <div class="text-xs text-muted">${b.qty} ${b.unit} × ${b.price.toLocaleString('vi-VN')}đ/${b.unit}</div>
-          </div>
-          <div style="font-weight:700;color:var(--gray-900)">${fmt(b.subtotal)}</div>
-        </div>
-        <div class="breakdown-bar"><div class="breakdown-bar-fill" style="width:${barPct}%"></div></div>
-      </div>`;
+    var r = await api({ action: 'calculateCost', productCode: code });
+    if (r.error) { el.querySelector('.card-body').innerHTML='<div class="alert alert-err">'+r.error+'</div>'; return; }
+    var maxSub = Math.max.apply(null, r.breakdown.map(function(b){return b.subtotal;}));
+    var rows = r.breakdown.map(function(b){
+      var pct = maxSub>0?b.subtotal/maxSub*100:0;
+      var badge = b.isBTP?'<span class="badge badge-btp" style="margin-left:4px">BTP</span>':'';
+      return '<div style="margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between"><div><div style="font-size:12px;font-weight:600">'+b.name+badge+'</div><div class="text-xs text-muted">'+b.qty+' '+b.unit+(b.price?' × '+b.price.toLocaleString('vi-VN')+'đ/'+b.unit:'')+'</div></div><div style="font-weight:700">'+fmt(b.subtotal)+'</div></div><div class="bar-wrap"><div class="bar-fill" style="width:'+pct+'%"></div></div></div>';
     }).join('');
-
-    const warningsHTML = res.warnings?.length ?
-      `<div class="alert alert-warning">⚠️ ${res.warnings.join('<br>')}</div>` : '';
-
-    resultEl.innerHTML = `
-      <div class="card-header">
-        <span class="card-icon">📋</span>
-        <div>
-          <div class="card-title">${res.productName}</div>
-          <div class="card-subtitle font-mono">${res.productCode} — Mode: ${res.mode}</div>
-        </div>
-      </div>
-      <div class="card-body">
-        ${warningsHTML}
-        <div style="background:linear-gradient(135deg,var(--brown),var(--brown-m));border-radius:10px;padding:16px;color:white;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--gold)">
-          <div>
-            <div style="font-size:11px;color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase">TỔNG GIÁ VỐN</div>
-            <div style="font-size:28px;font-weight:800;margin-top:4px">${fmt(res.totalCost)}</div>
-          </div>
-          <div style="font-size:40px">🧮</div>
-        </div>
-        <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px">Chi tiết thành phần (${res.ingredientCount} NVL)</div>
-        ${breakedownHTML}
-      </div>`;
-  } catch(e) {
-    resultEl.innerHTML = `<div class="card-header"><span class="card-icon">❌</span><div class="card-title">Lỗi kết nối</div></div>
-      <div class="card-body"><div class="alert alert-error">${e.message}</div></div>`;
-  }
+    var warns = r.warnings&&r.warnings.length?'<div class="alert alert-warn">⚠️ '+r.warnings.join('<br>')+'</div>':'';
+    el.querySelector('.card-body').innerHTML =
+      warns+
+      '<div style="background:linear-gradient(135deg,var(--brown),var(--brown-m));border-radius:10px;padding:14px;color:white;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">'+
+        '<div><div style="font-size:10px;color:var(--gold);font-weight:700;text-transform:uppercase;letter-spacing:1px">TỔNG GIÁ VỐN</div><div style="font-size:26px;font-weight:800;margin-top:4px">'+fmt(r.totalCost)+'</div></div>'+
+        '<div style="font-size:36px">🧮</div>'+
+      '</div>'+
+      '<div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Chi tiết ('+r.breakdown.length+' NVL)</div>'+
+      rows;
+  } catch(e) { el.querySelector('.card-body').innerHTML='<div class="alert alert-err">'+e.message+'</div>'; }
 }
 
-function switchInputTab(tab, el) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  document.getElementById('tabText').style.display = tab === 'text' ? 'block' : 'none';
-  document.getElementById('tabImage').style.display = tab === 'image' ? 'block' : 'none';
-}
+// ============================================================
+// SALES FILE PARSING
+// ============================================================
+var salesData = [];
 
-async function parseRecipeUI() {
-  const text = document.getElementById('recipeText').value;
-  if (!text.trim()) return;
-  try {
-    const res = await callAppsScript({ action: 'parseRecipeText', text });
-    if (res.error) { alert('Lỗi: ' + res.error); return; }
-    alert(`Đã phân tích ${res.count} thành phần:\n${res.parsed.map(p => `${p.name}: ${p.qty} ${p.unit}`).join('\n')}`);
-  } catch(e) { alert('Lỗi: ' + e.message); }
-}
-
-async function handleImageOCR(input) {
-  const file = input.files[0];
+function parseSalesFile(input) {
+  var file = input.files[0];
   if (!file) return;
-  const key = state.settings.openaiKey;
-  if (!key) {
-    document.getElementById('ocrStatus').innerHTML =
-      '<div class="alert alert-warning">Can Anthropic API Key trong Cai dat</div>';
-    return;
-  }
-
-  document.getElementById('ocrStatus').innerHTML =
-    '<div class="loader"><div class="spinner"></div> Dang OCR anh bang Claude AI...</div>';
-
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const base64 = e.target.result.split(',')[1];
-    const mimeType = file.type || 'image/jpeg';
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 500,
-          messages: [{
-            role: 'user',
-            content: [
-              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
-              { type: 'text', text: 'Trich xuat danh sach nguyen lieu tu anh cong thuc nay. Moi dong theo format: "Ten nguyen lieu - So luong Don vi". Chi tra ve danh sach, khong co gi khac.' }
-            ]
-          }]
-        })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      const text = (data.content && data.content[0] && data.content[0].text) || '';
-      document.getElementById('recipeText').value = text;
-      document.getElementById('ocrStatus').innerHTML =
-        '<div class="alert alert-success">OCR thanh cong! Da dien vao o nhap cong thuc.</div>';
-      const tabs = document.querySelectorAll('.tab-btn');
-      if (tabs[1]) { tabs[1].click(); }
-    } catch(err) {
-      document.getElementById('ocrStatus').innerHTML =
-        '<div class="alert alert-error">OCR that bai: ' + err.message + '</div>';
-    }
-  };
-  reader.readAsDataURL(file);
-}
-
-async function loadIngredients() {
-  document.getElementById('ingredientsTableBody').innerHTML =
-    '<tr><td colspan="6"><div class="loader"><div class="spinner"></div> Đang tải...</div></td></tr>';
-  try {
-    const res = await callAppsScript({ action: 'getIngredients' });
-    if (res.error) throw new Error(res.error);
-    state.ingredients = res.data || [];
-    document.getElementById('ingCount').textContent = `${res.count} nguyên vật liệu`;
-    renderIngredientsTable(state.ingredients);
-  } catch(e) {
-    document.getElementById('ingredientsTableBody').innerHTML =
-      `<tr><td colspan="6"><div class="alert alert-error">❌ ${e.message}</div></td></tr>`;
-  }
-}
-
-function renderIngredientsTable(items) {
-  if (!items.length) {
-    document.getElementById('ingredientsTableBody').innerHTML =
-      '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--gray-400)">Không có NVL</td></tr>';
-    return;
-  }
-  document.getElementById('ingredientsTableBody').innerHTML = items.map(i => `
-    <tr>
-      <td><span class="td-code">${i.code}</span></td>
-      <td><span style="font-weight:600">${i.name || '—'}</span></td>
-      <td><span class="badge badge-gray">${i.group || '—'}</span></td>
-      <td>${i.unitRetail || '—'}</td>
-      <td class="td-money" style="text-align:right">${i.priceRetail ? i.priceRetail.toLocaleString('vi-VN') + 'đ' : '—'}</td>
-      <td class="td-money" style="text-align:right">${i.priceAvg ? i.priceAvg.toLocaleString('vi-VN') + 'đ' : '—'}</td>
-    </tr>`).join('');
-}
-
-function filterIngredients() {
-  const q = document.getElementById('ingSearch').value.toLowerCase();
-  const filtered = state.ingredients.filter(i =>
-    (i.name || '').toLowerCase().includes(q) ||
-    (i.code || '').toLowerCase().includes(q) ||
-    (i.group || '').toLowerCase().includes(q)
-  );
-  renderIngredientsTable(filtered);
-}
-
-function showAddIngredient() {
-  document.getElementById('addIngModal').style.display = 'block';
-}
-
-async function saveIngredient() {
-  const ing = {
-    code: document.getElementById('newIngCode').value.trim(),
-    name: document.getElementById('newIngName').value.trim(),
-    group: document.getElementById('newIngGroup').value.trim(),
-    unitRetail: document.getElementById('newIngUnit').value.trim(),
-    priceRetail: parseFloat(document.getElementById('newIngPrice').value) || 0
-  };
-  if (!ing.code || !ing.name) { alert('Cần nhập Mã và Tên NVL'); return; }
-  try {
-    const res = await callAppsScript({ action: 'saveNewIngredient', ingredient: ing });
-    if (res.error) throw new Error(res.error);
-    alert('✅ Đã lưu NVL: ' + ing.name);
-    document.getElementById('addIngModal').style.display = 'none';
-    loadIngredients();
-  } catch(e) { alert('❌ Lỗi: ' + e.message); }
-}
-
-// ============================================================
-// AI ANALYSIS
-// ============================================================
-async function callClaude(prompt) {
-  const key = state.settings.openaiKey; // reusing same localStorage key
-  if (!key) throw new Error('Chua cau hinh Anthropic API Key. Vao Cai dat de nhap.');
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 1024,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  });
-  if (!res.ok) {
-    const errBody = await res.json().catch(function() { return {}; });
-    throw new Error((errBody && errBody.error && errBody.error.message) || ('HTTP ' + res.status));
-  }
-  const data = await res.json();
-  return (data.content && data.content[0] && data.content[0].text) || '';
-}
-
-async function runAIAnalysisUI() {
-  const key = state.settings.openaiKey;
-  if (!key) {
-    document.getElementById('aiResultPanel').innerHTML =
-      '<div class="alert alert-warning">Can nhap Anthropic API Key trong Cai dat. Lay tai: <a href="https://console.anthropic.com/" target="_blank" style="color:var(--gold)">console.anthropic.com</a></div>';
-    return;
-  }
-
-  if (!state.products.length) {
-    document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Dang tai du lieu san pham...';
-    try {
-      const res = await callAppsScript({ action: 'getAllProductCosts' });
-      if (res.data) state.products = res.data;
-    } catch(e) {}
-  }
-
-  document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> Claude dang phan tich...';
-  document.getElementById('aiResultPanel').innerHTML =
-    '<div class="ai-panel">' +
-    '<div class="loader" style="color:rgba(255,255,255,0.7)">' +
-    '<div class="spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:var(--gold)"></div>' +
-    ' Claude AI dang phan tich du lieu chi phi Phuc Tea...' +
-    '</div></div>';
-
-  try {
-    const prods = state.products.filter(function(p) { return p.cost > 0; });
-    const cogsProds = prods.filter(function(p) { return p.cogs > 0; });
-    const avgCogs = cogsProds.length
-      ? cogsProds.reduce(function(s, p) { return s + p.cogs; }, 0) / cogsProds.length
-      : 0;
-    const topCost = prods.slice().sort(function(a, b) { return b.cost - a.cost; }).slice(0, 10);
-    const modeName = state.mode === 'DC' ? 'Duong Chung' : 'Tach Duong';
-
-    const topLines = topCost.map(function(p) {
-      const cogsVal = p.cogs > 1 ? p.cogs.toFixed(1) : (p.cogs * 100).toFixed(1);
-      return '- ' + p.name + ' (' + p.code + '): Gia von ' + Math.round(p.cost).toLocaleString('vi-VN') + 'd, COGs ' + cogsVal + '%';
-    }).join('; ');
-
-    const prompt = 'Ban la chuyen gia phan tich chi phi F&B cho Phuc Tea - chuoi tra sua Viet Nam. '
-      + 'Phan tich du lieu chi phi va tra loi bang tieng Viet. '
-      + 'Mode cong thuc: ' + modeName + '. '
-      + 'Tong san pham: ' + prods.length + '. '
-      + 'COGs trung binh: ' + (avgCogs * 100).toFixed(1) + '%. '
-      + 'Top 10 gia von cao: ' + topLines + '. '
-      + 'Yeu cau: Tra ve JSON THUAN TUY, KHONG co markdown, KHONG co gi khac ngoai JSON. '
-      + 'Format chinh xac: {"insight":"Nhan dinh tinh hinh chi phi hien tai (2-3 cau, dung tieng Viet co dau)...","recommendation":"De xuat cai thien cu the (2-3 cau)...","action":"Hanh dong uu tien can lam ngay (1-2 cau)..."}';
-
-    const raw = await callClaude(prompt);
-    let text = raw.trim();
-    text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-    const allM = text.match(/\{[\s\S]*\}/g);
-    if (allM && allM.length > 0) text = allM[allM.length - 1];
-
-    let analysis;
-    try { analysis = JSON.parse(text); }
-    catch(e) {
-      try { analysis = JSON.parse(text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']')); }
-      catch(e2) { analysis = { insight: raw, recommendation: '—', action: '—' }; }
-    }
-
-    const now = new Date().toLocaleString('vi-VN');
-    document.getElementById('aiStatus').innerHTML = '';
-    document.getElementById('aiResultPanel').innerHTML =
-      '<div class="ai-panel">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">' +
-          '<div style="font-size:17px;font-weight:800;color:white">🤖 Claude AI — Phan tich chi phi</div>' +
-          '<div style="font-size:11px;color:var(--gold-m)">' + now + ' · ' + prods.length + ' san pham · Mode ' + modeName + '</div>' +
-        '</div>' +
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">💡 Nhan dinh (Insight)</div>' +
-          '<div class="ai-section-content">' + (analysis.insight || '—') + '</div>' +
-        '</div>' +
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">🎯 De xuat (Recommendation)</div>' +
-          '<div class="ai-section-content">' + (analysis.recommendation || '—') + '</div>' +
-        '</div>' +
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">⚡ Hanh dong ngay (Action)</div>' +
-          '<div class="ai-section-content">' + (analysis.action || '—') + '</div>' +
-        '</div>' +
-      '</div>';
-  } catch(e) {
-    document.getElementById('aiStatus').innerHTML = '';
-    document.getElementById('aiResultPanel').innerHTML =
-      '<div class="alert alert-error">❌ Claude AI loi: ' + e.message + '</div>';
-  }
-}
-
-function scheduleAI() {
-  alert('💡 Để chạy AI tự động hàng ngày:\n\nVì Gemini chạy từ trình duyệt, hãy:\n1. Mở trang này vào 8:00 sáng mỗi ngày\n2. Bấm "Chạy phân tích AI ngay"\n\nHoặc tạo Google Apps Script trigger gọi Anthropic API (Claude) với key của bạn.');
-}
-
-// ============================================================
-// FORECAST
-// ============================================================
-let salesData = [];
-let xlsxSalesFile = null;
-
-function handleSalesFile(input) {
-  const file = input.files[0];
-  if (!file) return;
-  xlsxSalesFile = file;
-  
-  if (typeof XLSX === 'undefined') {
-    document.getElementById('salesFileStatus').innerHTML = '<div class="alert alert-error">❌ SheetJS chưa tải. Vui lòng reload trang.</div>';
-    return;
-  }
-  
-  const reader = new FileReader();
+  if (typeof XLSX === 'undefined') { toast('SheetJS chưa tải, reload trang', 'err'); return; }
+  var reader = new FileReader();
   reader.onload = function(e) {
     try {
-      const buf = e.target.result;
-      const wb = XLSX.read(buf, { type: 'array', cellDates: false });
-      
-      // Try sheet "Tất cả cửa hàng" first, then first sheet
-      let ws = null;
-      const sheetPriority = ['Tất cả cửa hàng', 'tat ca cua hang'];
-      for (const name of sheetPriority) {
-        if (wb.SheetNames.includes(name)) { ws = wb.Sheets[name]; break; }
+      var wb = XLSX.read(e.target.result, { type:'array' });
+      // Prefer "Tat ca cua hang" sheet, else first
+      var wsName = wb.SheetNames[0];
+      for (var i=0;i<wb.SheetNames.length;i++) { if (wb.SheetNames[i].includes('Tất cả')||wb.SheetNames[i].includes('Tat ca')) { wsName=wb.SheetNames[i]; break; } }
+      var ws = wb.Sheets[wsName];
+      var rows = XLSX.utils.sheet_to_json(ws, { header:1, defval:'', raw:true });
+      // Find header row - look for "Mã món" in col A
+      var headerRow = -1, soldCol = 5;
+      for (var r=0;r<Math.min(rows.length,8);r++) {
+        if (String(rows[r][0]).replace(/\u200b/g,'').trim() === 'Mã món') { headerRow=r; break; }
       }
-      if (!ws) ws = wb.Sheets[wb.SheetNames[0]];
-      
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: true });
-      
-      // IPOS format: rows 0-2 are headers, actual header is row 1 ("Mã món", "Tên món"...)
-      // Find header row
-      let headerRow = -1;
-      let codeCol = -1, nameCol = -1, soldCol = -1, revenueCol = -1;
-      
-      for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const r = rows[i];
-        for (let j = 0; j < r.length; j++) {
-          const cell = String(r[j] || '').trim();
-          if (cell === 'Mã món' || cell === 'Mã SP') { headerRow = i; codeCol = j; }
-          if (cell === 'Tên món' || cell === 'Tên SP') nameCol = j;
-        }
-        if (headerRow === i) break;
+      // Find "Đã bán" column
+      if (headerRow>=0 && headerRow+1<rows.length) {
+        var subH = rows[headerRow+1];
+        for (var c=0;c<subH.length;c++) { if (String(subH[c]).replace(/\u200b/g,'').trim()==='Đã bán') { soldCol=c; break; } }
       }
-      
-      // Find "Đã bán" and revenue in the next header row (IPOS has merged headers)
-      if (headerRow >= 0 && headerRow + 1 < rows.length) {
-        const subHeader = rows[headerRow + 1];
-        for (let j = 0; j < subHeader.length; j++) {
-          const cell = String(subHeader[j] || '').replace(/​/g,'').trim();
-          if (cell === 'Đã bán' && soldCol === -1) soldCol = j;
-          if ((cell === 'Doanh thu (gross)' || cell === 'Doanh thu (net)') && revenueCol === -1) revenueCol = j;
-        }
-      }
-      
-      // Fallback: find sold in same header row
-      if (soldCol === -1 && headerRow >= 0) {
-        const r = rows[headerRow];
-        for (let j = 0; j < r.length; j++) {
-          const cell = String(r[j] || '').replace(/​/g,'').trim();
-          if (cell === 'Đã bán') soldCol = j;
-          if (cell === 'Doanh thu (gross)' || cell === 'Doanh thu (net)') revenueCol = j;
-        }
-      }
-      
-      // Default fallback positions based on IPOS export format
-      if (codeCol === -1) codeCol = 0;
-      if (nameCol === -1) nameCol = 1;
-      if (soldCol === -1) soldCol = 5;
-      if (revenueCol === -1) revenueCol = 11;
-      
-      // Parse data rows (skip group header rows = rows with merged cells / no code)
-      const dataStartRow = headerRow >= 0 ? headerRow + 2 : 3;
+      var dataStart = headerRow>=0 ? headerRow+2 : 3;
       salesData = [];
-      
-      for (let i = dataStartRow; i < rows.length; i++) {
-        const r = rows[i];
-        const code = String(r[codeCol] || '').replace(/​/g,'').trim();
-        const name = String(r[nameCol] || '').trim();
-        const sold = parseFloat(String(r[soldCol] || '0').replace(/,/g,'')) || 0;
-        const revenue = parseFloat(String(r[revenueCol] || '0').replace(/,/g,'')) || 0;
-        
-        // Only keep valid product codes: uppercase alphanumeric+underscore, 2-20 chars
-        // This filters out group headers like "BST PHÚC​", "HỒNG TRÀ​", "SUM" etc.
+      var seen = new Set();
+      for (var i=dataStart;i<rows.length;i++) {
+        var row = rows[i];
+        var code = String(row[0]||'').replace(/\u200b/g,'').trim();
+        var name = String(row[1]||'').trim();
+        var sold = parseFloat(String(row[soldCol]||'0').replace(/,/g,''))||0;
         if (!code) continue;
         if (!/^[A-Z0-9_]{2,20}$/.test(code)) continue;
-        // Must have a real product name
-        if (!name || name === 'None') continue;
-        // Skip known non-product codes
-        if (['SUM','DC','DR'].includes(code) || /^D[0-9]+$/.test(code)) continue;
-        // Skip combos / promo group headers
-        if (code.startsWith('COMBO') || code.startsWith('ID_')) continue;
-        // Skip rows with zero sales
-        if (sold === 0 && revenue === 0) continue;
-        
-        salesData.push({ productCode: code, productName: name, quantitySold: sold, revenue: revenue });
+        if (!name||name==='None') continue;
+        if (['SUM','DC','DR'].includes(code)||/^D[0-9]+$/.test(code)) continue;
+        if (code.startsWith('COMBO')||code.startsWith('ID_')) continue;
+        if (sold<=0) continue;
+        var dk = code+'|'+sold;
+        if (seen.has(dk)) continue;
+        seen.add(dk);
+        salesData.push({ iposCode: code, productName: name, quantitySold: sold });
       }
-      
-      const statusEl = document.getElementById('salesFileStatus');
-      if (salesData.length > 0) {
-        statusEl.innerHTML = `<div class="alert alert-success">✅ Đã đọc <strong>${salesData.length} sản phẩm</strong> từ "${file.name}". Nhấn Tạo dự báo.</div>`;
+      var el = document.getElementById('fileStatus');
+      if (salesData.length>0) {
+        el.innerHTML = '<div class="alert alert-ok">✅ Đọc được <strong>'+salesData.length+' sản phẩm</strong> từ "'+file.name+'"</div>';
       } else {
-        statusEl.innerHTML = `<div class="alert alert-warning">⚠️ Không đọc được dữ liệu từ file. Thử dán JSON thủ công bên dưới.<br><small>Sheets: ${wb.SheetNames.join(', ')}</small></div>`;
+        el.innerHTML = '<div class="alert alert-warn">⚠️ Không đọc được dữ liệu hợp lệ. Sheets: '+wb.SheetNames.join(', ')+'</div>';
       }
     } catch(err) {
-      document.getElementById('salesFileStatus').innerHTML = `<div class="alert alert-error">❌ Lỗi đọc file: ${err.message}</div>`;
+      document.getElementById('fileStatus').innerHTML = '<div class="alert alert-err">❌ Lỗi: '+err.message+'</div>';
     }
   };
   reader.readAsArrayBuffer(file);
 }
 
 // ============================================================
-// DATA SYNC
+// FORECAST
 // ============================================================
-async function syncAllData() {
-  const btn = document.getElementById('syncBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ Đang đồng bộ...';
-  const start = Date.now();
+async function runForecast() {
+  var data = [];
+  var jsonText = document.getElementById('salesJson').value.trim();
+  if (jsonText) {
+    try { data = JSON.parse(jsonText); } catch(e) { toast('JSON không hợp lệ: '+e.message,'err'); return; }
+  }
+  if (!data.length && salesData.length) data = salesData;
+  if (!data.length) { toast('Cần có dữ liệu bán hàng','err'); return; }
+  // Normalize: support both iposCode and productCode keys
+  data = data.map(function(d){ return { iposCode: d.iposCode||d.productCode||'', productName: d.productName||'', quantitySold: d.quantitySold||0 }; });
+
+  var dataDays = parseInt(document.getElementById('dataDays').value)||1;
+  var fcDays   = parseInt(document.getElementById('fcDays').value)||7;
+
+  document.getElementById('fcResult').innerHTML = '<div class="loader"><div class="spin"></div>Đang tạo dự báo...</div>';
+  document.getElementById('fcSummaryCard').querySelector('.card-body')?document.getElementById('fcSummaryCard').querySelector('.card-body').innerHTML='<div class="loader"><div class="spin"></div>Đang tính...</div>':null;
+
   try {
-    // Clear caches
-    state.products = [];
-    state.ingredients = [];
-    state._recipes = null;
-    state._btpRecipes = null;
-
-    // Reload in parallel
-    const [prodRes, ingRes] = await Promise.all([
-      callAppsScript({ action: 'getAllProductCosts' }),
-      callAppsScript({ action: 'getIngredients' })
-    ]);
-
-    if (prodRes.data) state.products = prodRes.data;
-    if (ingRes.data) state.ingredients = ingRes.data;
-
-    const ms = Date.now() - start;
-    btn.textContent = '✅ Đã đồng bộ';
-    btn.style.color = 'var(--green)';
-    setTimeout(function() {
-      btn.textContent = '🔄 Đồng bộ dữ liệu';
-      btn.style.color = '';
-      btn.disabled = false;
-    }, 2500);
-
-    // Refresh visible page
-    const activePage = document.querySelector('.page.active');
-    if (activePage) {
-      const pid = activePage.id.replace('page-', '');
-      if (pid === 'dashboard') loadDashboard();
-      else if (pid === 'products') renderProductsTable(state.products);
-      else if (pid === 'ingredients') renderIngredientsTable(state.ingredients);
-    }
-
-    // Show toast
-    showToast('Đã đồng bộ ' + state.products.length + ' sản phẩm, ' + state.ingredients.length + ' NVL trong ' + ms + 'ms', 'success');
+    var r = await api({ action:'forecastDemand', salesData: data, dataDays: dataDays, forecastDays: fcDays });
+    if (r.error) throw new Error(r.error);
+    var list = S.fcMode==='rawonly' ? r.rawOnlyForecast : r.standardForecast;
+    var totalCost = S.fcMode==='rawonly' ? r.totalCostRaw : r.totalCostStandard;
+    S.lastForecast = list;
+    S.lastForecastRaw = r;
+    renderFcSummary(r, list, totalCost, dataDays, fcDays);
+    renderFcList(list, r);
   } catch(e) {
-    btn.textContent = '❌ Lỗi đồng bộ';
-    btn.style.color = 'var(--red)';
-    setTimeout(function() {
-      btn.textContent = '🔄 Đồng bộ dữ liệu';
-      btn.style.color = '';
-      btn.disabled = false;
-    }, 3000);
-    showToast('Lỗi đồng bộ: ' + e.message, 'error');
+    document.getElementById('fcResult').innerHTML = '<div class="alert alert-err">❌ '+e.message+'</div>';
+    toast('Forecast lỗi: '+e.message,'err');
   }
 }
 
-function showToast(msg, type) {
-  let toast = document.getElementById('globalToast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'globalToast';
-    toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;transform:translateY(80px);opacity:0;transition:all 0.3s;max-width:340px;box-shadow:0 4px 20px rgba(0,0,0,0.15)';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = msg;
-  if (type === 'success') {
-    toast.style.background = 'var(--green)';
-    toast.style.color = '#fff';
-  } else if (type === 'error') {
-    toast.style.background = 'var(--red)';
-    toast.style.color = '#fff';
-  } else {
-    toast.style.background = 'var(--gold)';
-    toast.style.color = 'var(--brown)';
-  }
-  toast.style.transform = 'translateY(0)';
-  toast.style.opacity = '1';
-  setTimeout(function() {
-    toast.style.transform = 'translateY(80px)';
-    toast.style.opacity = '0';
-  }, 3500);
+function renderFcSummary(r, list, totalCost, dataDays, fcDays) {
+  var modeLabel = S.fcMode==='rawonly'?'🧪 NVL thô':'📦 Tiêu chuẩn';
+  document.getElementById('fcSummaryCard').innerHTML =
+    '<div class="card-hd"><span class="card-icon">📊</span><div><div class="card-title">Tổng quan dự báo</div><div class="card-sub">Daily avg × '+fcDays+' ngày</div></div></div>'+
+    '<div class="card-body">'+
+      '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
+        '<div class="stat" style="padding:10px 12px"><div class="stat-label">Sản phẩm</div><div class="stat-val" style="font-size:18px">'+r.productCount+'</div></div>'+
+        '<div class="stat" style="padding:10px 12px"><div class="stat-label">Loại NVL</div><div class="stat-val" style="font-size:18px">'+list.length+'</div><div class="stat-sub">'+modeLabel+'</div></div>'+
+      '</div>'+
+      '<div style="background:var(--gold-l);border:1px solid var(--gold);border-radius:var(--rs);padding:12px">'+
+        '<div style="font-size:10px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Chi phí dự báo '+fcDays+' ngày</div>'+
+        '<div style="font-size:20px;font-weight:800;color:var(--brown)">'+fmt(totalCost)+'</div>'+
+        '<div class="text-xs text-muted">Dữ liệu '+dataDays+' ngày → TB '+Math.round(totalCost/fcDays).toLocaleString('vi-VN')+'đ/ngày</div>'+
+      '</div>'+
+      (r.warnings&&r.warnings.length?'<div class="alert alert-warn" style="margin-top:10px;font-size:11px">⚠️ '+r.warnings.slice(0,3).join(' · ')+(r.warnings.length>3?'…':'')+'</div>':'')+
+    '</div>';
+}
+
+function renderFcList(list, r) {
+  if (!list.length) { document.getElementById('fcResult').innerHTML='<div class="alert alert-warn">Không có dữ liệu dự báo</div>'; return; }
+  var rows = list.slice(0,40).map(function(item,i){
+    var badge = item.isBTP?'<span class="badge badge-btp" style="margin-left:4px;font-size:9px">BTP</span>':'';
+    return '<div class="fc-card">'+
+      '<div class="fc-rank">'+(i+1)+'</div>'+
+      '<div class="fc-info"><div class="fc-name">'+item.name+badge+'</div><div class="fc-code">'+item.code+' · '+item.unit+'</div></div>'+
+      '<div class="fc-qty"><div class="fc-qty-val">'+Math.ceil(item.totalQty).toLocaleString('vi-VN')+' <span style="font-size:11px;font-weight:400">'+item.unit+'</span></div><div class="fc-cost">'+fmt(item.totalCost)+'</div></div>'+
+    '</div>';
+  }).join('');
+  document.getElementById('fcResult').innerHTML =
+    '<div class="card">'+
+      '<div class="card-hd flex justify-between items-center">'+
+        '<div><div class="card-title">📦 Nhu cầu NVL — '+(r.forecastDays)+' ngày tới</div><div class="card-sub">'+(S.fcMode==='rawonly'?'NVL thô (không BTP)':'Tiêu chuẩn')+' · '+list.length+' loại</div></div>'+
+        '<div class="btn-group">'+
+          '<button class="btn btn-green btn-sm" onclick="convertToOrder()">📋 Quy đổi đặt hàng</button>'+
+          '<button class="btn btn-secondary btn-sm" onclick="exportFcExcel()">⬇ Excel</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="card-body">'+rows+'</div>'+
+    '</div>';
 }
 
 // ============================================================
-// AI TAB SWITCH
+// ORDER CONVERSION
+// ============================================================
+async function convertToOrder() {
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Cần chạy Forecast trước','err'); return; }
+  nav('order');
+  document.getElementById('orderResult').innerHTML = '<div class="loader"><div class="spin"></div>Đang quy đổi...</div>';
+  try {
+    var r = await api({ action:'convertToOrder', forecastData: S.lastForecast });
+    if (r.error) throw new Error(r.error);
+    renderOrder(r);
+  } catch(e) {
+    document.getElementById('orderResult').innerHTML = '<div class="alert alert-err">❌ '+e.message+'</div>';
+  }
+}
+
+function renderOrder(r) {
+  document.getElementById('orderPanel').innerHTML = '';
+  var rows = r.orders.map(function(o,i){
+    var waste = o.wastePercent?o.wastePercent.toFixed(1)+'%':'—';
+    var status = o.found?'':'<span class="badge badge-red">Thiếu data</span>';
+    return '<tr>'+
+      '<td style="font-size:12px">'+(i+1)+'</td>'+
+      '<td><div style="font-size:12px;font-weight:600">'+o.name+'</div><span class="td-code">'+o.code+'</span>'+status+'</td>'+
+      '<td class="td-num">'+Math.ceil(o.rawQty).toLocaleString('vi-VN')+'<div class="text-xs text-muted">'+o.rawUnit+'</div></td>'+
+      '<td class="td-num" style="font-size:16px;font-weight:800;color:var(--gold)">'+o.orderQty+'</td>'+
+      '<td style="font-size:12px">'+o.unitChan+'</td>'+
+      '<td class="td-num">'+(o.priceChan?Math.round(o.priceChan).toLocaleString('vi-VN')+'đ':'—')+'</td>'+
+      '<td class="td-cost">'+fmt(o.totalCost)+'</td>'+
+      '<td class="td-num text-muted">'+waste+'</td>'+
+    '</tr>';
+  }).join('');
+  document.getElementById('orderResult').innerHTML =
+    '<div class="order-total">'+
+      '<div><div style="font-size:10px;color:var(--gold-m);font-weight:700;letter-spacing:1px;text-transform:uppercase">TỔNG TIỀN ĐẶT HÀNG</div><div style="font-size:24px;font-weight:800;margin-top:4px">'+fmt(r.totalOrderCost)+'</div></div>'+
+      '<div class="btn-group"><button class="btn btn-primary btn-sm" onclick="exportOrderExcel()">⬇ Excel</button></div>'+
+    '</div>'+
+    '<div class="card"><div class="card-hd"><span class="card-icon">📦</span><div><div class="card-title">Chi tiết đơn hàng</div><div class="card-sub">'+r.count+' loại NVL · CEIL(rawQty/packSize)</div></div></div>'+
+    '<div class="table-wrap"><table><thead><tr><th>#</th><th>Tên NVL</th><th style="text-align:right">Cần (lẻ)</th><th style="text-align:right">Đặt (chẵn)</th><th>ĐVT</th><th style="text-align:right">Đơn giá</th><th style="text-align:right">Thành tiền</th><th style="text-align:right">% Dư</th></tr></thead>'+
+    '<tbody>'+rows+'</tbody></table></div></div>';
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportFcExcel() {
+  if (!S.lastForecast||!S.lastForecast.length) { toast('Không có dữ liệu dự báo','err'); return; }
+  var fcDays = parseInt(document.getElementById('fcDays').value)||7;
+  var rows = [['#','Mã NVL','Tên NVL','Loại','Số lượng dự báo','Đơn vị','Chi phí ước (đ)']];
+  S.lastForecast.forEach(function(item,i){
+    rows.push([i+1,item.code,item.name,item.isBTP?'BTP':'NVL',Math.ceil(item.totalQty),item.unit,Math.round(item.totalCost)]);
+  });
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  XLSX.utils.book_append_sheet(wb,'Forecast',ws);
+  XLSX.writeFile(wb,'PhuTea_Forecast_'+fcDays+'ngay_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Đã xuất Excel','ok');
+}
+
+function exportOrderExcel() {
+  // read from rendered table
+  var tbl = document.querySelector('#orderResult table');
+  if (!tbl) { toast('Không có dữ liệu','err'); return; }
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.table_to_sheet(tbl);
+  XLSX.utils.book_append_sheet(wb,'DonHang',ws);
+  XLSX.writeFile(wb,'PhuTea_DonHang_'+new Date().toISOString().slice(0,10)+'.xlsx');
+  toast('Đã xuất Excel','ok');
+}
+
+// ============================================================
+// AI ANALYSIS
 // ============================================================
 function switchAITab(tab, el) {
-  document.querySelectorAll('#aiTabs .tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('#aiTabs .tab-btn').forEach(function(b){b.classList.remove('active');});
   el.classList.add('active');
-  document.getElementById('aiResultPanel').style.display = tab === 'analysis' ? 'block' : 'none';
-  document.getElementById('aiResearchPanel').style.display = tab === 'research' ? 'block' : 'none';
+  document.getElementById('aiCostPanel').style.display    = tab==='cost'?'block':'none';
+  document.getElementById('aiResearchPanel').style.display = tab==='research'?'block':'none';
 }
 
-// ============================================================
-// AI RESEARCH - Real-time market research
-// ============================================================
-async function runAIResearchUI() {
-  const key = state.settings.openaiKey;
-  if (!key) {
-    document.getElementById('aiResearchPanel').innerHTML =
-      '<div class="alert alert-warning">Can Anthropic API Key trong Cai dat.</div>';
-    document.getElementById('aiResearchPanel').style.display = 'block';
-    document.getElementById('aiResultPanel').style.display = 'none';
-    // switch tab
-    const tabs = document.querySelectorAll('#aiTabs .tab-btn');
-    tabs.forEach(function(b) { b.classList.remove('active'); });
-    if (tabs[1]) tabs[1].classList.add('active');
-    return;
+async function callClaude(prompt) {
+  if (!S.apiKey) throw new Error('Cần Anthropic API Key trong Cài đặt');
+  var res = await fetch('https://api.anthropic.com/v1/messages', {
+    method:'POST',
+    headers:{'x-api-key':S.apiKey,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,messages:[{role:'user',content:prompt}]})
+  });
+  if (!res.ok) { var eb=await res.json().catch(function(){return{};});throw new Error((eb&&eb.error&&eb.error.message)||'HTTP '+res.status); }
+  var data=await res.json();
+  return (data.content&&data.content[0]&&data.content[0].text)||'';
+}
+
+function parseAIJson(raw) {
+  var text=raw.trim().replace(/```json/g,'').replace(/```/g,'').trim();
+  var all=text.match(/\{[\s\S]*\}/g); if(all) text=all[all.length-1];
+  try{return JSON.parse(text);}catch(e){
+    try{return JSON.parse(text.replace(/,\s*}/g,'}').replace(/,\s*]/g,']'));}
+    catch(e2){return null;}
   }
+}
 
-  // Switch to research tab
-  const tabs = document.querySelectorAll('#aiTabs .tab-btn');
-  tabs.forEach(function(b) { b.classList.remove('active'); });
-  if (tabs[1]) tabs[1].classList.add('active');
-  document.getElementById('aiResultPanel').style.display = 'none';
-  document.getElementById('aiResearchPanel').style.display = 'block';
-
-  // Load products if needed
-  if (!state.products.length) {
-    try {
-      const res = await callAppsScript({ action: 'getAllProductCosts' });
-      if (res.data) state.products = res.data;
-    } catch(e) {}
+async function runAICost() {
+  if (!S.products.length) {
+    document.getElementById('aiCostPanel').innerHTML='<div class="loader"><div class="spin"></div>Đang tải sản phẩm...</div>';
+    try{var r=await api({action:'getAllCosts'});if(r.data)S.products=r.data;}catch(e){}
   }
-
-  document.getElementById('aiStatus').innerHTML = '<div class="spinner"></div> AI Research dang chay...';
-  document.getElementById('aiResearchPanel').innerHTML =
-    '<div class="ai-panel">' +
-    '<div class="loader" style="color:rgba(255,255,255,0.7)">' +
-    '<div class="spinner" style="border-color:rgba(255,255,255,0.2);border-top-color:var(--gold)"></div>' +
-    ' 🔬 Claude AI dang phan tich xu huong thi truong va R&D...' +
-    '</div></div>';
-
+  document.getElementById('aiCostPanel').style.display='block';
+  document.getElementById('aiResearchPanel').style.display='none';
+  document.querySelectorAll('#aiTabs .tab-btn').forEach(function(b,i){b.classList.toggle('active',i===0);});
+  document.getElementById('aiCostPanel').innerHTML='<div class="loader"><div class="spin"></div>Claude đang phân tích...</div>';
   try {
-    const prods = state.products.filter(function(p) { return p.cost > 0; });
-    const modeName = state.mode === 'DC' ? 'Duong Chung' : 'Tach Duong';
-
-    // Group products by category
-    const groups = {};
-    prods.forEach(function(p) {
-      const g = p.group || 'Khac';
-      if (!groups[g]) groups[g] = 0;
-      groups[g]++;
-    });
-    const groupSummary = Object.keys(groups).map(function(g) { return g + ': ' + groups[g] + ' san pham'; }).join(', ');
-
-    const topCost = prods.slice().sort(function(a, b) { return b.cost - a.cost; }).slice(0, 8);
-    const topLines = topCost.map(function(p) {
-      return p.name + ' (' + Math.round(p.cost).toLocaleString('vi-VN') + 'd)';
-    }).join('; ');
-
-    const now = new Date();
-    const month = now.getMonth() + 1;
-    const seasonHint = month >= 4 && month <= 9
-      ? 'mua he (thang ' + month + '), nhu cau do uong lanh tang cao'
-      : 'mua dong/Tet (thang ' + month + '), nhu cau do uong am, tra sua truyen thong tang';
-
-    const prompt = 'Ban la chuyen gia R&D va nghien cuu thi truong F&B tai Viet Nam, chuyen ve tra sua va do uong. '
-      + 'Phuc Tea la chuoi tra sua franchise voi ' + prods.length + ' san pham. '
-      + 'Nhom san pham: ' + groupSummary + '. '
-      + 'Top san pham gia von cao: ' + topLines + '. '
-      + 'Thoi diem hien tai: ' + seasonHint + '. '
-      + 'Nhiem vu: Nghien cuu thi truong THOI GIAN THUC, phan tich xu huong, de xuat R&D. '
-      + 'CHU Y QUAN TRONG: Chi tra ve JSON thuan tuy. TUYET DOI KHONG dung markdown, KHONG dung backtick, KHONG giai thich gi them. '
-      + 'Chi tra ve dung 1 object JSON voi cac truong sau (viet tieng Viet co dau): '
-      + 'insight (string), trends (array of 5 strings), '
-      + 'newProducts (array of 3 objects: name/concept/ingredients/estimatedCost/targetPrice/rationale), '
-      + 'seasonal (string), action (string). '
-      + 'Bat dau ngay bang dau { va ket thuc bang }.';
-
-    const raw = await callClaude(prompt);
-    // Robust JSON extraction - handle backticks, prefix text, etc.
-    let text = raw.trim();
-    // Remove markdown code blocks
-    text = text.replace(/^```[\w]*\n?/gm, '').replace(/^```\n?/gm, '').trim();
-    // Find the JSON object - take the LAST { } block to skip any preamble
-    const allMatches = text.match(/\{[\s\S]*\}/g);
-    if (allMatches && allMatches.length > 0) text = allMatches[allMatches.length - 1];
-
-    let research;
-    try {
-      research = JSON.parse(text);
-    } catch(e) {
-      // Try to fix common issues: unescaped quotes, trailing commas
-      try {
-        const fixedText = text.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']');
-        research = JSON.parse(fixedText);
-      } catch(e2) {
-        // Last resort: show raw response in insight field
-        research = { insight: raw, trends: [], newProducts: [], seasonal: 'Loi parse JSON - xem raw: ' + raw.substring(0, 200), action: '' };
-      }
-    }
-
-    const nowStr = new Date().toLocaleString('vi-VN');
-    document.getElementById('aiStatus').innerHTML = '';
-
-    const trendsHTML = (research.trends || []).map(function(t, i) {
-      return '<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.08)">' +
-        '<span style="background:var(--gold);color:var(--brown);border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">' + (i+1) + '</span>' +
-        '<span style="color:rgba(255,255,255,0.9);font-size:13px">' + t + '</span>' +
+    var prods=S.products.filter(function(p){return p.cost>0;});
+    var cogsP=prods.filter(function(p){return p.cogs>0;});
+    var avgCogs=cogsP.length?cogsP.reduce(function(s,p){return s+p.cogs;},0)/cogsP.length:0;
+    var top=prods.slice().sort(function(a,b){return b.cost-a.cost;}).slice(0,8);
+    var topLines=top.map(function(p){return p.name+' ('+Math.round(p.cost).toLocaleString('vi-VN')+'d)';}).join('; ');
+    var mLabel=MODE_LABELS[S.mode];
+    var prompt='Chuyen gia F&B Phuc Tea Vietnam. Mode:'+mLabel+'. '+prods.length+' SP. COGs TB:'+(avgCogs*100).toFixed(1)+'%. Top chi phi:'+topLines+'. Phan tich va tra ve JSON thuan tuy (khong markdown, bat dau bang {): {"insight":"...","recommendation":"...","action":"..."}';
+    var raw=await callClaude(prompt);
+    var a=parseAIJson(raw);
+    if(!a){a={insight:raw,recommendation:'—',action:'—'};}
+    var now=new Date().toLocaleString('vi-VN');
+    document.getElementById('aiCostPanel').innerHTML=
+      '<div class="ai-panel">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">'+
+          '<div style="font-size:16px;font-weight:800;color:white">🤖 Claude AI — Phân tích chi phí</div>'+
+          '<div class="text-xs" style="color:var(--gold-m)">'+now+' · '+prods.length+' SP · '+mLabel+'</div>'+
+        '</div>'+
+        '<div class="ai-section"><div class="ai-section-label">💡 Nhận định</div><div class="ai-section-content">'+a.insight+'</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">🎯 Đề xuất</div><div class="ai-section-content">'+a.recommendation+'</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">⚡ Hành động</div><div class="ai-section-content">'+a.action+'</div></div>'+
       '</div>';
-    }).join('');
-
-    const newProdsHTML = (research.newProducts || []).map(function(p) {
-      return '<div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid rgba(245,166,35,0.2)">' +
-        '<div style="font-size:14px;font-weight:800;color:var(--gold);margin-bottom:6px">✨ ' + (p.name || '') + '</div>' +
-        '<div style="font-size:12px;color:rgba(255,255,255,0.8);margin-bottom:8px">' + (p.concept || '') + '</div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:11px">' +
-          '<div style="background:rgba(0,0,0,0.2);padding:6px 8px;border-radius:6px"><div style="color:var(--gold-m)">NGUYEN LIEU</div><div style="color:white;margin-top:2px">' + (p.ingredients || '—') + '</div></div>' +
-          '<div style="background:rgba(0,0,0,0.2);padding:6px 8px;border-radius:6px"><div style="color:var(--gold-m)">GIA VON</div><div style="color:white;margin-top:2px">' + (p.estimatedCost || '—') + '</div></div>' +
-          '<div style="background:rgba(0,0,0,0.2);padding:6px 8px;border-radius:6px"><div style="color:var(--gold-m)">GIA BAN</div><div style="color:white;margin-top:2px">' + (p.targetPrice || '—') + '</div></div>' +
-        '</div>' +
-        '<div style="font-size:11px;color:rgba(255,255,255,0.6);margin-top:8px;font-style:italic">💡 ' + (p.rationale || '') + '</div>' +
-      '</div>';
-    }).join('');
-
-    document.getElementById('aiResearchPanel').innerHTML =
-      '<div class="ai-panel">' +
-        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px">' +
-          '<div style="font-size:17px;font-weight:800;color:white">🔬 AI Research — Xu huong & R&D</div>' +
-          '<div style="font-size:11px;color:var(--gold-m)">' + nowStr + ' · Real-time · ' + prods.length + ' san pham</div>' +
-        '</div>' +
-
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">📊 Nhan dinh thi truong</div>' +
-          '<div class="ai-section-content">' + (research.insight || '—') + '</div>' +
-        '</div>' +
-
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">🔥 Top 5 xu huong hien tai</div>' +
-          '<div>' + (trendsHTML || '<div style="color:rgba(255,255,255,0.5)">Khong co du lieu</div>') + '</div>' +
-        '</div>' +
-
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">✨ De xuat san pham moi (R&D)</div>' +
-          (newProdsHTML || '<div style="color:rgba(255,255,255,0.5)">Khong co de xuat</div>') +
-        '</div>' +
-
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">🌸 Chien luoc theo mua</div>' +
-          '<div class="ai-section-content">' + (research.seasonal || '—') + '</div>' +
-        '</div>' +
-
-        '<div class="ai-section">' +
-          '<div class="ai-section-label">⚡ Hanh dong R&D uu tien</div>' +
-          '<div class="ai-section-content">' + (research.action || '—') + '</div>' +
-        '</div>' +
-      '</div>';
-
-  } catch(e) {
-    document.getElementById('aiStatus').innerHTML = '';
-    document.getElementById('aiResearchPanel').innerHTML =
-      '<div class="alert alert-error">❌ AI Research loi: ' + e.message + '</div>';
-  }
+  } catch(e) { document.getElementById('aiCostPanel').innerHTML='<div class="alert alert-err">❌ '+e.message+'</div>'; }
 }
 
-// ============================================================
-// ADVANCED FORECAST - Mode 2 (Raw materials only)
-// ============================================================
-async function runForecastUI() {
-  let data = [];
-
-  // Priority 1: JSON manual input
-  const jsonText = document.getElementById('salesJson').value.trim();
-  if (jsonText) {
-    try { data = JSON.parse(jsonText); }
-    catch(e) {
-      document.getElementById('forecastResult').innerHTML =
-        '<div class="alert alert-error">JSON khong hop le: ' + e.message + '</div>';
-      return;
-    }
-  }
-
-  // Priority 2: Excel file parsed data
-  if (!data.length && salesData.length) data = salesData;
-
-  if (!data || !data.length) {
-    document.getElementById('forecastResult').innerHTML =
-      '<div class="alert alert-warning">Chua co du lieu ban hang. Vui long upload file Excel tu IPOS hoac dan JSON.</div>';
-    return;
-  }
-
-  const days = parseInt(document.getElementById('forecastDays').value);
-  const forecastMode = state.forecastMode || 'standard';
-  const modeLabel = forecastMode === 'rawonly' ? 'NVL tho (khong BTP)' : 'Tieu chuan (BTP + NVL)';
-
-  document.getElementById('forecastResult').innerHTML =
-    '<div class="loader"><div class="spinner"></div> Dang tao du bao (' + modeLabel + ')...</div>';
-  document.getElementById('forecastSummary').querySelector('.card-body').innerHTML =
-    '<div class="loader"><div class="spinner"></div> Dang tinh...</div>';
-
+async function runAIResearch() {
+  if (!S.products.length) { try{var r=await api({action:'getAllCosts'});if(r.data)S.products=r.data;}catch(e){} }
+  document.getElementById('aiCostPanel').style.display='none';
+  document.getElementById('aiResearchPanel').style.display='block';
+  document.querySelectorAll('#aiTabs .tab-btn').forEach(function(b,i){b.classList.toggle('active',i===1);});
+  document.getElementById('aiResearchPanel').innerHTML='<div class="loader"><div class="spin"></div>Claude đang nghiên cứu xu hướng thị trường...</div>';
   try {
-    // Load recipes (product → ingredients/BTP)
-    const recipesRes = await callAppsScript({ action: 'getRecipes' });
-    const ingRes = await callAppsScript({ action: 'getIngredients' });
-    if (recipesRes.error || ingRes.error) throw new Error(recipesRes.error || ingRes.error);
-
-    const recipes = recipesRes.data || {};
-    const ingList = ingRes.data || [];
-    const ingMap = {};
-    ingList.forEach(function(i) { ingMap[i.code] = i; });
-
-    // For Mode 2: also load BTP recipes (BTP → raw ingredients)
-    let btpRecipes = {};
-    if (forecastMode === 'rawonly') {
-      // Use cached if available
-      if (state._btpRecipes && state._btpRecipes[state.mode]) {
-        btpRecipes = state._btpRecipes[state.mode];
-      } else {
-        const btpSheetName = state.mode === 'TD' ? 'Dinh luong BTP - TD' : '3. Dinh luong BTP - DC';
-        const btpRes = await callAppsScript({ action: 'getBTPRecipes' });
-        if (!btpRes.error && btpRes.data) {
-          btpRecipes = btpRes.data;
-          if (!state._btpRecipes) state._btpRecipes = {};
-          state._btpRecipes[state.mode] = btpRecipes;
-        }
-      }
-    }
-
-    // Step 1: Aggregate sales by product code
-    // Deduplicate: only count each (code, name) pair once
-    const productTotals = {};
-    const seenRows = new Set();
-    data.forEach(function(item) {
-      const code = item.productCode;
-      if (!code) return;
-      // Dedup key: same code + same sold count = duplicate row (e.g. from "Tat ca cua hang" + individual sheets)
-      const dupKey = code + '|' + (parseFloat(item.quantitySold) || 0) + '|' + (parseFloat(item.revenue) || 0);
-      if (seenRows.has(dupKey)) return;
-      seenRows.add(dupKey);
-      if (!productTotals[code]) productTotals[code] = { sold: 0, revenue: 0, name: item.productName || code };
-      productTotals[code].sold += parseFloat(item.quantitySold) || 0;
-      productTotals[code].revenue += parseFloat(item.revenue) || 0;
-    });
-
-    // Step 2: Expand product → ingredients/BTP
-    const ingredientForecast = {}; // final aggregation
-    const btpDemand = {}; // intermediate BTP quantities for Mode 2
-    const warnings = [];
-
-    Object.keys(productTotals).forEach(function(code) {
-      const totals = productTotals[code];
-      const recipe = recipes[code];
-      if (!recipe) { warnings.push(code); return; }
-
-      (recipe.ingredients || []).forEach(function(item) {
-        const projectedQty = totals.sold * item.qty * days;
-        const isBTP = item.code && item.code.startsWith('BTP');
-
-        if (forecastMode === 'rawonly' && isBTP) {
-          // Track BTP demand for later expansion
-          if (!btpDemand[item.code]) {
-            btpDemand[item.code] = { code: item.code, name: item.name, unit: item.unit, totalQty: 0 };
-          }
-          btpDemand[item.code].totalQty += projectedQty;
-        } else {
-          // Add directly to forecast (standard mode, or raw NVL in rawonly mode)
-          if (!ingredientForecast[item.code]) {
-            ingredientForecast[item.code] = { code: item.code, name: item.name, unit: item.unit, totalQty: 0, totalCost: 0, isBTP: isBTP };
-          }
-          ingredientForecast[item.code].totalQty += projectedQty;
-          ingredientForecast[item.code].totalCost += projectedQty * (item.price || 0);
-        }
-      });
-    });
-
-    // Step 3 (Mode 2 only): Expand BTP demand → raw ingredients using BTP recipes
-    if (forecastMode === 'rawonly' && Object.keys(btpDemand).length > 0) {
-      Object.keys(btpDemand).forEach(function(btpCode) {
-        const btpItem = btpDemand[btpCode];
-        const btpRecipe = btpRecipes[btpCode];
-
-        if (!btpRecipe || !btpRecipe.ingredients || !btpRecipe.ingredients.length) {
-          // BTP recipe not found — add as-is with warning
-          warnings.push('Khong co cong thuc BTP: ' + btpCode);
-          if (!ingredientForecast[btpCode]) {
-            ingredientForecast[btpCode] = { code: btpCode, name: btpItem.name + ' (BTP—chua co CT)', unit: btpItem.unit, totalQty: btpItem.totalQty, totalCost: 0, isBTP: true };
-          } else {
-            ingredientForecast[btpCode].totalQty += btpItem.totalQty;
-          }
-          return;
-        }
-
-        // Expand BTP -> raw NVL: ratio = ingredientQtyPerBatch / btpBatchSize
-        // E.g. BTP01 batch=5500ml, uses 5000g NVL → ratio=5000/5500
-        // Product uses 180ml BTP01 → rawQty = 180 * (5000/5500) = 163.6g
-        var batchSize = btpRecipe.batchSize || 1;
-        btpRecipe.ingredients.forEach(function(rawIng) {
-          var qtyPerBatch = rawIng.qtyPerBatch || rawIng.qty || 0;
-          var ratio = batchSize > 0 ? (qtyPerBatch / batchSize) : 0;
-          var rawQty = btpItem.totalQty * ratio;
-          if (!ingredientForecast[rawIng.code]) {
-            ingredientForecast[rawIng.code] = { code: rawIng.code, name: rawIng.name, unit: rawIng.unit, totalQty: 0, totalCost: 0, isBTP: false };
-          }
-          ingredientForecast[rawIng.code].totalQty += rawQty;
-          ingredientForecast[rawIng.code].totalCost += rawQty * (rawIng.price || 0);
-        });
-      });
-    }
-
-    const forecastList = Object.values(ingredientForecast).sort(function(a, b) { return b.totalCost - a.totalCost; });
-    const totalCost = forecastList.reduce(function(s, i) { return s + i.totalCost; }, 0);
-    const productCount = Object.keys(productTotals).length;
-    const btpCount = Object.keys(btpDemand).length;
-
-    // Summary card
-    document.getElementById('forecastSummary').querySelector('.card-body').innerHTML =
-      '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:12px">' +
-        '<div class="stat-card green" style="padding:12px">' +
-          '<div class="stat-label">San pham</div>' +
-          '<div class="stat-value" style="font-size:20px">' + productCount + '</div>' +
-        '</div>' +
-        '<div class="stat-card yellow" style="padding:12px">' +
-          '<div class="stat-label">Du bao ' + days + ' ngay</div>' +
-          '<div class="stat-value" style="font-size:20px">' + forecastList.length + '</div>' +
-          '<div class="stat-sub">loai ' + (forecastMode === 'rawonly' ? 'NVL tho' : 'NVL/BTP') + '</div>' +
-        '</div>' +
-      '</div>' +
-      (forecastMode === 'rawonly' && btpCount > 0
-        ? '<div style="margin-top:8px;padding:8px 12px;background:var(--green-l);border-radius:8px;font-size:12px;color:var(--green);font-weight:600">✅ Da quy doi ' + btpCount + ' BTP thanh NVL tho</div>'
-        : '') +
-      '<div style="margin-top:12px;padding:12px;background:var(--gold-l);border-radius:8px;border:1px solid var(--gold)">' +
-        '<div style="font-size:11px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Chi phi du bao</div>' +
-        '<div style="font-size:20px;font-weight:800;color:var(--brown)">' + fmt(totalCost) + '</div>' +
+    var prods=S.products.filter(function(p){return p.cost>0;});
+    var groups={};prods.forEach(function(p){var g=p.group||'Khác';groups[g]=(groups[g]||0)+1;});
+    var gSum=Object.keys(groups).map(function(g){return g+':'+groups[g];}).join(', ');
+    var top=prods.slice().sort(function(a,b){return b.cost-a.cost;}).slice(0,6);
+    var topLines=top.map(function(p){return p.name;}).join('; ');
+    var month=new Date().getMonth()+1;
+    var season=month>=4&&month<=9?'mua he - do uong lanh, trai cay, xu huong healthy':'mua dong/Tet - do uong am, tradition, xu huong premium';
+    var prompt='Chuyen gia R&D F&B tra sua Viet Nam. Phuc Tea: '+prods.length+' SP. Nhom: '+gSum+'. Top: '+topLines+'. Thoi diem: '+season+'. Nhiem vu: nghien cuu thi truong THOI GIAN THUC, xu huong, de xuat R&D. Tra ve JSON THUAN TUY (khong markdown, bat dau bang {): {"insight":"Nhan dinh thi truong tra sua VN hien tai...","trends":["xu huong 1","xu huong 2","xu huong 3","xu huong 4","xu huong 5"],"newProducts":[{"name":"Ten SP","concept":"Mo ta 15 tu","ingredients":"NVL chinh","estimatedCost":"~XXXXXd","targetPrice":"~XXXXXd","rationale":"Ly do thi truong"},{"name":"Ten SP 2","concept":"Mo ta","ingredients":"NVL","estimatedCost":"~XXXXXd","targetPrice":"~XXXXXd","rationale":"Ly do"},{"name":"Ten SP 3","concept":"Mo ta","ingredients":"NVL","estimatedCost":"~XXXXXd","targetPrice":"~XXXXXd","rationale":"Ly do"}],"seasonal":"Chien luoc theo mua...","action":"Hanh dong R&D uu tien..."}';
+    var raw=await callClaude(prompt);
+    var res=parseAIJson(raw);
+    if(!res){res={insight:raw,trends:[],newProducts:[],seasonal:'',action:''};}
+    var now=new Date().toLocaleString('vi-VN');
+    var trendsH=(res.trends||[]).map(function(t,i){return '<div style="display:flex;gap:9px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.08)"><span style="background:var(--gold);color:var(--brown);border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0">'+(i+1)+'</span><span style="color:rgba(255,255,255,.88);font-size:13px">'+t+'</span></div>';}).join('');
+    var prodsH=(res.newProducts||[]).map(function(p){return '<div style="background:rgba(255,255,255,.06);border-radius:9px;padding:12px;margin-bottom:9px;border:1px solid rgba(245,166,35,.2)"><div style="font-size:14px;font-weight:800;color:var(--gold);margin-bottom:5px">✨ '+(p.name||'')+'</div><div style="font-size:12px;color:rgba(255,255,255,.8);margin-bottom:7px">'+(p.concept||'')+'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;font-size:11px"><div style="background:rgba(0,0,0,.2);padding:5px 8px;border-radius:5px"><div style="color:var(--gold-m)">NVL</div><div style="color:white;margin-top:2px">'+(p.ingredients||'—')+'</div></div><div style="background:rgba(0,0,0,.2);padding:5px 8px;border-radius:5px"><div style="color:var(--gold-m)">GIÁ VỐN</div><div style="color:white;margin-top:2px">'+(p.estimatedCost||'—')+'</div></div><div style="background:rgba(0,0,0,.2);padding:5px 8px;border-radius:5px"><div style="color:var(--gold-m)">GIÁ BÁN</div><div style="color:white;margin-top:2px">'+(p.targetPrice||'—')+'</div></div></div><div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:7px;font-style:italic">💡 '+(p.rationale||'')+'</div></div>';}).join('');
+    document.getElementById('aiResearchPanel').innerHTML=
+      '<div class="ai-panel">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px"><div style="font-size:16px;font-weight:800;color:white">🔬 AI Research — Xu hướng & R&D</div><div class="text-xs" style="color:var(--gold-m)">'+now+' · Real-time</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">📊 Nhận định thị trường</div><div class="ai-section-content">'+(res.insight||'—')+'</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">🔥 Top 5 xu hướng</div><div>'+trendsH+'</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">✨ Đề xuất sản phẩm mới (R&D)</div>'+prodsH+'</div>'+
+        '<div class="ai-section"><div class="ai-section-label">🌸 Chiến lược theo mùa</div><div class="ai-section-content">'+(res.seasonal||'—')+'</div></div>'+
+        '<div class="ai-section"><div class="ai-section-label">⚡ Hành động R&D ưu tiên</div><div class="ai-section-content">'+(res.action||'—')+'</div></div>'+
       '</div>';
-
-    const warningsHTML = warnings.length
-      ? '<div class="alert alert-warning" style="margin-bottom:16px">⚠️ Khong co cong thuc: ' + warnings.slice(0, 5).join(' · ') + (warnings.length > 5 ? ' (+' + (warnings.length - 5) + ' khac)' : '') + '</div>'
-      : '';
-
-    const forecastRows = forecastList.slice(0, 40).map(function(item, i) {
-      const badgeHTML = item.isBTP
-        ? '<span style="font-size:9px;background:var(--gold-l);color:var(--brown-m);padding:1px 5px;border-radius:4px;margin-left:4px;font-weight:700">BTP</span>'
-        : '';
-      return '<div class="forecast-card">' +
-        '<div class="forecast-rank">' + (i + 1) + '</div>' +
-        '<div class="forecast-info">' +
-          '<div class="forecast-name">' + item.name + badgeHTML + '</div>' +
-          '<div class="forecast-unit">' + item.code + ' · ' + (item.unit || '') + '</div>' +
-        '</div>' +
-        '<div class="forecast-qty">' +
-          '<div class="forecast-qty-val">' + Math.ceil(item.totalQty).toLocaleString('vi-VN') + ' ' + (item.unit || '') + '</div>' +
-          '<div class="forecast-cost">' + fmt(item.totalCost) + '</div>' +
-        '</div>' +
-      '</div>';
-    }).join('');
-
-    document.getElementById('forecastResult').innerHTML =
-      warningsHTML +
-      '<div class="card">' +
-        '<div class="card-header">' +
-          '<span class="card-icon">📦</span>' +
-          '<div>' +
-            '<div class="card-title">Du bao nhu cau NVL — ' + days + ' ngay toi</div>' +
-            '<div class="card-subtitle">Mode: <strong>' + modeLabel + '</strong> · ' + data.length + ' ban ghi · ' + Object.keys(productTotals).length + ' san pham</div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="card-body">' + forecastRows + '</div>' +
-      '</div>';
-
-  } catch(e) {
-    document.getElementById('forecastResult').innerHTML =
-      '<div class="alert alert-error">❌ ' + e.message + '</div>';
-    document.getElementById('forecastSummary').querySelector('.card-body').innerHTML =
-      '<div class="alert alert-error">❌ ' + e.message + '</div>';
-  }
+  } catch(e) { document.getElementById('aiResearchPanel').innerHTML='<div class="alert alert-err">❌ '+e.message+'</div>'; }
 }
-
-
 
 // ============================================================
 // INIT
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
   loadSettings();
-  loadDashboard();
+  loadDash();
 });
 </script>
 </body>
