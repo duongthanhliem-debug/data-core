@@ -875,74 +875,174 @@ async function runForecast() {
   var data = [];
   var jsonText = document.getElementById('salesJson').value.trim();
   if (jsonText) {
-    try { data = JSON.parse(jsonText); } catch(e) { toast('JSON không hợp lệ: '+e.message,'err'); return; }
+    try { data = JSON.parse(jsonText); }
+    catch(e) { toast('JSON không hợp lệ: ' + e.message, 'err'); return; }
   }
   if (!data.length && salesData.length) data = salesData;
-  if (!data.length) { toast('Cần có dữ liệu bán hàng','err'); return; }
-  // Normalize: support both iposCode and productCode keys
-  data = data.map(function(d){ return { iposCode: d.iposCode||d.productCode||'', productName: d.productName||'', quantitySold: d.quantitySold||0 }; });
+  if (!data.length) { toast('Cần có dữ liệu bán hàng', 'err'); return; }
 
-  var dataDays = parseInt(document.getElementById('dataDays').value)||1;
-  var fcDays   = parseInt(document.getElementById('fcDays').value)||7;
+  // Normalize keys
+  data = data.map(function(d) {
+    return { iposCode: d.iposCode || d.productCode || '', productName: d.productName || '', quantitySold: d.quantitySold || 0 };
+  });
+
+  var dataDays = parseInt(document.getElementById('dataDays').value) || 1;
+  var fcDays   = parseInt(document.getElementById('fcDays').value) || 7;
 
   document.getElementById('fcResult').innerHTML = '<div class="loader"><div class="spin"></div>Đang tạo dự báo...</div>';
-  document.getElementById('fcSummaryCard').querySelector('.card-body')?document.getElementById('fcSummaryCard').querySelector('.card-body').innerHTML='<div class="loader"><div class="spin"></div>Đang tính...</div>':null;
+  var sumCard = document.getElementById('fcSummaryCard');
+  if (sumCard) sumCard.innerHTML = '<div class="card"><div class="card-hd"><span class="card-icon">📊</span><div class="card-title">Tổng quan dự báo</div></div><div class="card-body"><div class="loader"><div class="spin"></div>Đang tính...</div></div></div>';
 
   try {
-    var r = await api({ action:'forecastDemand', salesData: data, dataDays: dataDays, forecastDays: fcDays });
-    if (r.error) throw new Error(r.error);
-    var list = S.fcMode==='rawonly' ? r.rawOnlyForecast : r.standardForecast;
-    var totalCost = S.fcMode==='rawonly' ? r.totalCostRaw : r.totalCostStandard;
-    S.lastForecast = list;
-    S.lastForecastRaw = r;
-    renderFcSummary(r, list, totalCost, dataDays, fcDays);
-    renderFcList(list, r);
+    // ── Client-side forecast: fetch small payloads (recipes + NVL) ──
+    var [recRes, btpRes, nvlRes, spRes] = await Promise.all([
+      api({ action: 'getRecipesByMode' }),
+      api({ action: 'getBTPRecipes' }),
+      api({ action: 'getMaterials' }),
+      api({ action: 'getProductsByMode' })
+    ]);
+
+    if (recRes.error) throw new Error(recRes.error);
+    if (spRes.error)  throw new Error(spRes.error);
+
+    var recipes = recRes.data || {};
+    var btpMap  = (btpRes.data) || {};
+    var nvlList = (nvlRes.data) || [];
+
+    // Build IPOS → SP code map
+    var iposMap = {};
+    (spRes.data || []).forEach(function(p) { if (p.iposCode) iposMap[p.iposCode] = p.code; });
+
+    // Also cache NVL for use in order conversion
+    if (nvlList.length) S.nvl = nvlList;
+
+    // Aggregate sales by IPOS code
+    var dailyAvg = {};
+    var seen = new Set();
+    data.forEach(function(row) {
+      var ipos = String(row.iposCode || '').replace(/\u200b/g, '').trim();
+      if (!ipos) return;
+      var dk = ipos + '|' + (parseFloat(row.quantitySold) || 0);
+      if (seen.has(dk)) return;
+      seen.add(dk);
+      if (!dailyAvg[ipos]) dailyAvg[ipos] = { ipos: ipos, name: row.productName || ipos, totalSold: 0 };
+      dailyAvg[ipos].totalSold += parseFloat(row.quantitySold) || 0;
+    });
+
+    // Expand product → ingredients
+    var ingForecast = {};  // standard: BTP + NVL
+    var btpDemand   = {};  // BTP quantities for rawonly expansion
+    var warnings    = [];
+
+    Object.keys(dailyAvg).forEach(function(ipos) {
+      var avg    = dailyAvg[ipos];
+      var spCode = iposMap[ipos];
+      if (!spCode) { warnings.push('Không có mapping IPOS: ' + ipos); return; }
+      var recipe = recipes[spCode];
+      if (!recipe) { warnings.push('Không có công thức: ' + spCode); return; }
+      var fqty = (avg.totalSold / dataDays) * fcDays;  // daily_avg × forecast_days
+      (recipe.ingredients || []).forEach(function(ing) {
+        var totalQty = fqty * ing.qty;
+        var isBTP = ing.code && ing.code.indexOf('BTP') === 0;
+        if (isBTP) {
+          if (!btpDemand[ing.code]) btpDemand[ing.code] = { code: ing.code, name: ing.name, unit: ing.unit, totalQty: 0 };
+          btpDemand[ing.code].totalQty += totalQty;
+        }
+        if (!ingForecast[ing.code]) ingForecast[ing.code] = { code: ing.code, name: ing.name, unit: ing.unit, totalQty: 0, totalCost: 0, isBTP: isBTP };
+        ingForecast[ing.code].totalQty += totalQty;
+        ingForecast[ing.code].totalCost += totalQty * (ing.price || 0);
+      });
+    });
+
+    // Expand BTP → raw NVL (for rawonly mode)
+    var rawOnly = {};
+    Object.keys(btpDemand).forEach(function(btpCode) {
+      var bd  = btpDemand[btpCode];
+      var btp = btpMap[btpCode];
+      if (!btp || !btp.ingredients || !btp.ingredients.length) {
+        warnings.push('Thiếu công thức BTP: ' + btpCode);
+        rawOnly[btpCode] = { code: btpCode, name: bd.name + ' (BTP)', unit: bd.unit, totalQty: bd.totalQty, totalCost: 0, isBTP: true };
+        return;
+      }
+      var bs = btp.batchSize || 1;
+      btp.ingredients.forEach(function(bi) {
+        var ratio  = bs > 0 ? bi.qtyPerBatch / bs : 0;
+        var rawQty = bd.totalQty * ratio;
+        if (!rawOnly[bi.code]) rawOnly[bi.code] = { code: bi.code, name: bi.name, unit: bi.unit, totalQty: 0, totalCost: 0, isBTP: false };
+        rawOnly[bi.code].totalQty += rawQty;
+        rawOnly[bi.code].totalCost += rawQty * (bi.price || 0);
+      });
+    });
+    // Add direct NVL to rawOnly as well
+    Object.keys(ingForecast).forEach(function(code) {
+      var item = ingForecast[code];
+      if (!item.isBTP) {
+        if (!rawOnly[code]) rawOnly[code] = { code: code, name: item.name, unit: item.unit, totalQty: 0, totalCost: 0, isBTP: false };
+        rawOnly[code].totalQty  += item.totalQty;
+        rawOnly[code].totalCost += item.totalCost;
+      }
+    });
+
+    var stdList = Object.values(ingForecast).sort(function(a, b) { return b.totalCost - a.totalCost; });
+    var rawList = Object.values(rawOnly).sort(function(a, b) { return b.totalCost - a.totalCost; });
+    var list      = S.fcMode === 'rawonly' ? rawList : stdList;
+    var totalCost = list.reduce(function(s, i) { return s + i.totalCost; }, 0);
+
+    S.lastForecast    = list;
+    S.lastForecastRaw = { forecastDays: fcDays, dataDays: dataDays, productCount: Object.keys(dailyAvg).length, warnings: warnings };
+
+    // Render summary
+    var modeLabel = S.fcMode === 'rawonly' ? '🧪 NVL thô' : '📦 Tiêu chuẩn';
+    document.getElementById('fcSummaryCard').innerHTML =
+      '<div class="card">' +
+        '<div class="card-hd"><span class="card-icon">📊</span><div><div class="card-title">Tổng quan dự báo</div><div class="card-sub">Daily avg × ' + fcDays + ' ngày</div></div></div>' +
+        '<div class="card-body">' +
+          '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">' +
+            '<div class="stat" style="padding:10px 12px"><div class="stat-label">Sản phẩm</div><div class="stat-val" style="font-size:18px">' + Object.keys(dailyAvg).length + '</div></div>' +
+            '<div class="stat" style="padding:10px 12px"><div class="stat-label">Loại NVL</div><div class="stat-val" style="font-size:18px">' + list.length + '</div><div class="stat-sub">' + modeLabel + '</div></div>' +
+          '</div>' +
+          '<div style="background:var(--gold-l);border:1px solid var(--gold);border-radius:var(--rs);padding:12px">' +
+            '<div style="font-size:10px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Chi phí dự báo ' + fcDays + ' ngày</div>' +
+            '<div style="font-size:20px;font-weight:800;color:var(--brown)">' + fmt(totalCost) + '</div>' +
+            '<div class="text-xs text-muted">Data ' + dataDays + ' ngày → TB ' + fmt(totalCost / fcDays) + '/ngày</div>' +
+          '</div>' +
+          (warnings.length ? '<div class="alert alert-warn" style="margin-top:10px;font-size:11px">⚠️ ' + warnings.slice(0, 3).join(' · ') + (warnings.length > 3 ? '… (+' + (warnings.length - 3) + ')' : '') + '</div>' : '') +
+        '</div>' +
+      '</div>';
+
+    // Render list
+    var rows = list.slice(0, 40).map(function(item, i) {
+      var badge = item.isBTP ? '<span class="badge badge-btp" style="margin-left:4px;font-size:9px">BTP</span>' : '';
+      return '<div class="fc-card">' +
+        '<div class="fc-rank">' + (i + 1) + '</div>' +
+        '<div class="fc-info"><div class="fc-name">' + item.name + badge + '</div><div class="fc-code">' + item.code + ' · ' + (item.unit || '') + '</div></div>' +
+        '<div class="fc-qty"><div class="fc-qty-val">' + Math.ceil(item.totalQty).toLocaleString('vi-VN') + ' <span style="font-size:11px;font-weight:400">' + (item.unit || '') + '</span></div><div class="fc-cost">' + fmt(item.totalCost) + '</div></div>' +
+      '</div>';
+    }).join('');
+
+    document.getElementById('fcResult').innerHTML =
+      '<div class="card">' +
+        '<div class="card-hd flex justify-between items-center">' +
+          '<div><div class="card-title">📦 Nhu cầu NVL — ' + fcDays + ' ngày tới</div>' +
+          '<div class="card-sub">' + (S.fcMode === 'rawonly' ? 'NVL thô (không BTP)' : 'Tiêu chuẩn') + ' · ' + list.length + ' loại · ' + data.length + ' bản ghi đầu vào</div></div>' +
+          '<div class="btn-group">' +
+            '<button class="btn btn-green btn-sm" onclick="convertToOrder()">📋 Quy đổi đặt hàng</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="exportFcExcel()">⬇ Excel</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="card-body">' + rows + '</div>' +
+      '</div>';
+
   } catch(e) {
-    document.getElementById('fcResult').innerHTML = '<div class="alert alert-err">❌ '+e.message+'</div>';
-    toast('Forecast lỗi: '+e.message,'err');
+    document.getElementById('fcResult').innerHTML = '<div class="alert alert-err">❌ ' + e.message + '</div>';
+    if (document.getElementById('fcSummaryCard')) {
+      document.getElementById('fcSummaryCard').innerHTML = '<div class="card"><div class="card-hd"><span class="card-icon">📊</span><div class="card-title">Tổng quan dự báo</div></div><div class="card-body"><div class="alert alert-err">❌ ' + e.message + '</div></div></div>';
+    }
+    toast('Forecast lỗi: ' + e.message, 'err');
   }
 }
 
-function renderFcSummary(r, list, totalCost, dataDays, fcDays) {
-  var modeLabel = S.fcMode==='rawonly'?'🧪 NVL thô':'📦 Tiêu chuẩn';
-  document.getElementById('fcSummaryCard').innerHTML =
-    '<div class="card-hd"><span class="card-icon">📊</span><div><div class="card-title">Tổng quan dự báo</div><div class="card-sub">Daily avg × '+fcDays+' ngày</div></div></div>'+
-    '<div class="card-body">'+
-      '<div class="stats-grid" style="grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">'+
-        '<div class="stat" style="padding:10px 12px"><div class="stat-label">Sản phẩm</div><div class="stat-val" style="font-size:18px">'+r.productCount+'</div></div>'+
-        '<div class="stat" style="padding:10px 12px"><div class="stat-label">Loại NVL</div><div class="stat-val" style="font-size:18px">'+list.length+'</div><div class="stat-sub">'+modeLabel+'</div></div>'+
-      '</div>'+
-      '<div style="background:var(--gold-l);border:1px solid var(--gold);border-radius:var(--rs);padding:12px">'+
-        '<div style="font-size:10px;font-weight:700;color:var(--brown-m);text-transform:uppercase">Chi phí dự báo '+fcDays+' ngày</div>'+
-        '<div style="font-size:20px;font-weight:800;color:var(--brown)">'+fmt(totalCost)+'</div>'+
-        '<div class="text-xs text-muted">Dữ liệu '+dataDays+' ngày → TB '+Math.round(totalCost/fcDays).toLocaleString('vi-VN')+'đ/ngày</div>'+
-      '</div>'+
-      (r.warnings&&r.warnings.length?'<div class="alert alert-warn" style="margin-top:10px;font-size:11px">⚠️ '+r.warnings.slice(0,3).join(' · ')+(r.warnings.length>3?'…':'')+'</div>':'')+
-    '</div>';
-}
 
-function renderFcList(list, r) {
-  if (!list.length) { document.getElementById('fcResult').innerHTML='<div class="alert alert-warn">Không có dữ liệu dự báo</div>'; return; }
-  var rows = list.slice(0,40).map(function(item,i){
-    var badge = item.isBTP?'<span class="badge badge-btp" style="margin-left:4px;font-size:9px">BTP</span>':'';
-    return '<div class="fc-card">'+
-      '<div class="fc-rank">'+(i+1)+'</div>'+
-      '<div class="fc-info"><div class="fc-name">'+item.name+badge+'</div><div class="fc-code">'+item.code+' · '+item.unit+'</div></div>'+
-      '<div class="fc-qty"><div class="fc-qty-val">'+Math.ceil(item.totalQty).toLocaleString('vi-VN')+' <span style="font-size:11px;font-weight:400">'+item.unit+'</span></div><div class="fc-cost">'+fmt(item.totalCost)+'</div></div>'+
-    '</div>';
-  }).join('');
-  document.getElementById('fcResult').innerHTML =
-    '<div class="card">'+
-      '<div class="card-hd flex justify-between items-center">'+
-        '<div><div class="card-title">📦 Nhu cầu NVL — '+(r.forecastDays)+' ngày tới</div><div class="card-sub">'+(S.fcMode==='rawonly'?'NVL thô (không BTP)':'Tiêu chuẩn')+' · '+list.length+' loại</div></div>'+
-        '<div class="btn-group">'+
-          '<button class="btn btn-green btn-sm" onclick="convertToOrder()">📋 Quy đổi đặt hàng</button>'+
-          '<button class="btn btn-secondary btn-sm" onclick="exportFcExcel()">⬇ Excel</button>'+
-        '</div>'+
-      '</div>'+
-      '<div class="card-body">'+rows+'</div>'+
-    '</div>';
-}
 
 // ============================================================
 // ORDER CONVERSION
