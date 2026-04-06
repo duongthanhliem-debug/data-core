@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Phúc Tea — Data Core</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1048,6 +1050,7 @@ async function runForecast() {
           '<div class="btn-group">' +
             '<button class="btn btn-green btn-sm" onclick="convertToOrder()">📋 Quy đổi đặt hàng</button>' +
             '<button class="btn btn-secondary btn-sm" onclick="exportFcExcel()">⬇ Excel</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="exportFcPDF()">📄 PDF</button>' +
           '</div>' +
         '</div>' +
         '<div class="card-body">' + rows + '</div>' +
@@ -1132,7 +1135,7 @@ function renderOrder(r) {
   document.getElementById('orderResult').innerHTML =
     '<div class="order-total">'+
       '<div><div style="font-size:10px;color:var(--gold-m);font-weight:700;letter-spacing:1px;text-transform:uppercase">TỔNG TIỀN ĐẶT HÀNG</div><div style="font-size:24px;font-weight:800;margin-top:4px">'+fmt(r.totalOrderCost)+'</div></div>'+
-      '<div class="btn-group"><button class="btn btn-primary btn-sm" onclick="exportOrderExcel()">⬇ Excel</button></div>'+
+      '<div class="btn-group"><button class="btn btn-primary btn-sm" onclick="exportOrderExcel()">⬇ Excel</button><button class="btn btn-secondary btn-sm" onclick="exportOrderPDF()">📄 PDF</button></div>'+
     '</div>'+
     '<div class="card"><div class="card-hd"><span class="card-icon">📦</span><div><div class="card-title">Chi tiết đơn hàng</div><div class="card-sub">'+r.count+' loại NVL · CEIL(rawQty/packSize)</div></div></div>'+
     '<div class="table-wrap"><table><thead><tr><th>#</th><th>Tên NVL</th><th style="text-align:right">Cần (lẻ)</th><th style="text-align:right">Đặt (chẵn)</th><th>ĐVT</th><th style="text-align:right">Đơn giá</th><th style="text-align:right">Thành tiền</th><th style="text-align:right">% Dư</th></tr></thead>'+
@@ -1142,30 +1145,193 @@ function renderOrder(r) {
 // ============================================================
 // EXPORT
 // ============================================================
-function exportFcExcel() {
-  if (!S.lastForecast||!S.lastForecast.length) { toast('Không có dữ liệu dự báo','err'); return; }
-  var fcDays = parseInt(document.getElementById('fcDays').value)||7;
-  var rows = [['#','Mã NVL','Tên NVL','Loại','Số lượng dự báo','Đơn vị','Chi phí ước (đ)']];
-  S.lastForecast.forEach(function(item,i){
-    rows.push([i+1,item.code,item.name,item.isBTP?'BTP':'NVL',Math.ceil(item.totalQty),item.unit,Math.round(item.totalCost)]);
-  });
-  var wb = XLSX.utils.book_new();
-  var ws = XLSX.utils.aoa_to_sheet(rows);
-  XLSX.utils.book_append_sheet(wb,'Forecast',ws);
-  XLSX.writeFile(wb,'PhuTea_Forecast_'+fcDays+'ngay_'+new Date().toISOString().slice(0,10)+'.xlsx');
-  toast('Đã xuất Excel','ok');
+function downloadCSV(rows, filename) {
+  // UTF-8 BOM for Vietnamese characters in Excel
+  var BOM = '\uFEFF';
+  var csv = BOM + rows.map(function(row) {
+    return row.map(function(cell) {
+      var s = String(cell == null ? '' : cell);
+      // Quote cells that contain comma, quote, or newline
+      if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+        s = '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    }).join(',');
+  }).join('\r\n');
+
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
 }
 
-function exportOrderExcel() {
-  // read from rendered table
-  var tbl = document.querySelector('#orderResult table');
-  if (!tbl) { toast('Không có dữ liệu','err'); return; }
-  var wb = XLSX.utils.book_new();
-  var ws = XLSX.utils.table_to_sheet(tbl);
-  XLSX.utils.book_append_sheet(wb,'DonHang',ws);
-  XLSX.writeFile(wb,'PhuTea_DonHang_'+new Date().toISOString().slice(0,10)+'.xlsx');
-  toast('Đã xuất Excel','ok');
+function fmtVND(n) {
+  if (!n && n !== 0) return '0';
+  return Math.round(n).toLocaleString('vi-VN');
 }
+
+// ── FORECAST EXPORT ──
+function exportFcExcel() {
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Không có dữ liệu dự báo', 'err'); return; }
+  var fcDays = parseInt(document.getElementById('fcDays').value) || 7;
+  var date   = new Date().toISOString().slice(0, 10);
+  var rows   = [['#', 'Mã NVL', 'Tên NVL', 'Loại', 'Số lượng dự báo', 'Đơn vị', 'Chi phí ước (VNĐ)']];
+  S.lastForecast.forEach(function(item, i) {
+    rows.push([i + 1, item.code, item.name, item.isBTP ? 'BTP' : 'NVL',
+               Math.ceil(item.totalQty), item.unit || '', Math.round(item.totalCost)]);
+  });
+  downloadCSV(rows, 'PhucTea_Forecast_' + fcDays + 'ngay_' + date + '.csv');
+  toast('Đã xuất Excel/CSV', 'ok');
+}
+
+function exportFcPDF() {
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Không có dữ liệu', 'err'); return; }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    toast('Đang tải thư viện PDF, thử lại sau 2 giây...', 'info');
+    setTimeout(exportFcPDF, 2000); return;
+  }
+  var fcDays = parseInt(document.getElementById('fcDays').value) || 7;
+  var mLabel = MODE_LABELS[S.mode] || S.mode;
+  var date   = new Date().toLocaleDateString('vi-VN');
+  var JsPDF  = (typeof window.jspdf !== 'undefined') ? window.jspdf.jsPDF : jsPDF;
+  var doc    = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('DE XUAT NHAP HANG - DU BAO NVL', 14, 18);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ngay xuat: ' + date + '  |  Mode: ' + mLabel + '  |  Du bao: ' + fcDays + ' ngay', 14, 26);
+  doc.setDrawColor(245, 166, 35);
+  doc.setLineWidth(0.8);
+  doc.line(14, 29, 196, 29);
+
+  // Table
+  var body = S.lastForecast.map(function(item, i) {
+    return [i + 1, item.code, item.name, item.isBTP ? 'BTP' : 'NVL',
+            Math.ceil(item.totalQty).toLocaleString(), item.unit || '',
+            fmtVND(item.totalCost) + ' d'];
+  });
+  var total = S.lastForecast.reduce(function(s, i) { return s + i.totalCost; }, 0);
+
+  doc.autoTable({
+    startY: 33,
+    head: [['#', 'Ma NVL', 'Ten NVL', 'Loai', 'So luong', 'DVT', 'Chi phi (VND)']],
+    body: body,
+    foot: [['', '', '', '', '', 'TONG CONG:', fmtVND(total) + ' d']],
+    headStyles: { fillColor: [61, 43, 31], textColor: 255, fontStyle: 'bold', fontSize: 9 },
+    bodyStyles: { fontSize: 8, textColor: [61, 43, 31] },
+    footStyles: { fillColor: [253, 243, 227], textColor: [61, 43, 31], fontStyle: 'bold', fontSize: 9 },
+    alternateRowStyles: { fillColor: [253, 247, 242] },
+    columnStyles: { 0:{cellWidth:8}, 1:{cellWidth:22}, 4:{halign:'right'}, 6:{halign:'right'} },
+    margin: { left: 14, right: 14 },
+    didDrawPage: function(data) {
+      doc.setFontSize(8);
+      doc.setTextColor(150);
+      doc.text('Phuc Tea Data Core System', 14, doc.internal.pageSize.height - 8);
+      doc.text('Trang ' + data.pageNumber, 196, doc.internal.pageSize.height - 8, { align: 'right' });
+    }
+  });
+
+  doc.save('PhucTea_Forecast_' + fcDays + 'ngay_' + new Date().toISOString().slice(0, 10) + '.pdf');
+  toast('Đã xuất PDF', 'ok');
+}
+
+// ── ORDER EXPORT ──
+function exportOrderExcel() {
+  var rows = [['#', 'Tên NVL', 'Mã NVL', 'Cần (lẻ)', 'ĐVT lẻ', 'Số thùng/gói đặt', 'ĐVT chẵn', 'Đơn giá (VNĐ)', 'Thành tiền (VNĐ)', '% Dư']];
+  // Read from S.lastForecast + nvlMap
+  var nvlMap = {};
+  (S.nvl || []).forEach(function(n) { nvlMap[n.code] = n; });
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Chưa có dữ liệu đặt hàng', 'err'); return; }
+  S.lastForecast.forEach(function(item, i) {
+    var nvl   = nvlMap[item.code];
+    var ps    = nvl ? (nvl.packSize || 1) : 1;
+    var pc    = nvl ? (nvl.priceChan || 0) : 0;
+    var uc    = nvl ? (nvl.unitChan || item.unit) : item.unit;
+    var ul    = nvl ? (nvl.unitLe || item.unit) : item.unit;
+    var oq    = Math.ceil(item.totalQty / ps);
+    var or2   = oq * ps;
+    var waste = or2 > 0 ? ((or2 - item.totalQty) / or2 * 100).toFixed(1) + '%' : '0%';
+    rows.push([i + 1, item.name, item.code, Math.ceil(item.totalQty), ul, oq, uc, Math.round(pc), Math.round(oq * pc), waste]);
+  });
+  var total = S.lastForecast.reduce(function(s, item) {
+    var nvl = nvlMap[item.code];
+    var ps  = nvl ? (nvl.packSize || 1) : 1;
+    var pc  = nvl ? (nvl.priceChan || 0) : 0;
+    return s + Math.ceil(item.totalQty / ps) * pc;
+  }, 0);
+  rows.push(['', 'TỔNG CỘNG', '', '', '', '', '', '', Math.round(total), '']);
+  downloadCSV(rows, 'PhucTea_DonHang_' + new Date().toISOString().slice(0, 10) + '.csv');
+  toast('Đã xuất Excel/CSV', 'ok');
+}
+
+function exportOrderPDF() {
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Chưa có dữ liệu', 'err'); return; }
+  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
+    toast('Đang tải thư viện PDF, thử lại sau 2 giây...', 'info');
+    setTimeout(exportOrderPDF, 2000); return;
+  }
+  var mLabel = MODE_LABELS[S.mode] || S.mode;
+  var date   = new Date().toLocaleDateString('vi-VN');
+  var JsPDF  = (typeof window.jspdf !== 'undefined') ? window.jspdf.jsPDF : jsPDF;
+  var doc    = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  var nvlMap = {};
+  (S.nvl || []).forEach(function(n) { nvlMap[n.code] = n; });
+
+  // Header
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('DE XUAT NHAP HANG', 14, 18);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Ngay: ' + date + '  |  Mode: ' + mLabel, 14, 26);
+  doc.setDrawColor(245, 166, 35);
+  doc.setLineWidth(0.8);
+  doc.line(14, 29, 283, 29);
+
+  var body = []; var totalCost = 0;
+  S.lastForecast.forEach(function(item, i) {
+    var nvl  = nvlMap[item.code];
+    var ps   = nvl ? (nvl.packSize || 1) : 1;
+    var pc   = nvl ? (nvl.priceChan || 0) : 0;
+    var uc   = nvl ? (nvl.unitChan || item.unit) : item.unit;
+    var oq   = Math.ceil(item.totalQty / ps);
+    var cost = oq * pc;
+    totalCost += cost;
+    body.push([i + 1, item.name, item.code,
+               Math.ceil(item.totalQty).toLocaleString(), item.unit || '',
+               oq.toLocaleString(), uc, fmtVND(pc), fmtVND(cost)]);
+  });
+
+  doc.autoTable({
+    startY: 33,
+    head: [['#', 'Ten NVL', 'Ma', 'Can (le)', 'DVT le', 'Dat (chan)', 'DVT chan', 'Don gia', 'Thanh tien']],
+    body: body,
+    foot: [['', '', '', '', '', '', '', 'TONG CONG:', fmtVND(totalCost) + ' d']],
+    headStyles: { fillColor: [61, 43, 31], textColor: 255, fontStyle: 'bold', fontSize: 8 },
+    bodyStyles: { fontSize: 8, textColor: [61, 43, 31] },
+    footStyles: { fillColor: [253, 243, 227], textColor: [61, 43, 31], fontStyle: 'bold', fontSize: 9 },
+    alternateRowStyles: { fillColor: [253, 247, 242] },
+    columnStyles: { 0:{cellWidth:8}, 3:{halign:'right'}, 5:{halign:'right'}, 7:{halign:'right'}, 8:{halign:'right'} },
+    margin: { left: 14, right: 14 },
+    didDrawPage: function(data) {
+      doc.setFontSize(8); doc.setTextColor(150);
+      doc.text('Phuc Tea Data Core System', 14, doc.internal.pageSize.height - 8);
+      doc.text('Trang ' + data.pageNumber, 283, doc.internal.pageSize.height - 8, { align: 'right' });
+    }
+  });
+
+  doc.save('PhucTea_DonHang_' + new Date().toISOString().slice(0, 10) + '.pdf');
+  toast('Đã xuất PDF', 'ok');
+}
+
 
 // ============================================================
 // AI ANALYSIS
