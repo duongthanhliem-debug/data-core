@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Phúc Tea — Data Core</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -1189,59 +1187,105 @@ function exportFcExcel() {
   toast('Đã xuất Excel/CSV', 'ok');
 }
 
-function exportFcPDF() {
-  if (!S.lastForecast || !S.lastForecast.length) { toast('Không có dữ liệu', 'err'); return; }
-  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
-    toast('Đang tải thư viện PDF, thử lại sau 2 giây...', 'info');
-    setTimeout(exportFcPDF, 2000); return;
-  }
-  var fcDays = parseInt(document.getElementById('fcDays').value) || 7;
-  var mLabel = MODE_LABELS[S.mode] || S.mode;
-  var date   = new Date().toLocaleDateString('vi-VN');
-  var JsPDF  = (typeof window.jspdf !== 'undefined') ? window.jspdf.jsPDF : jsPDF;
-  var doc    = new JsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+function buildPrintHTML(title, subtitle, headerCols, bodyRows, totalLabel, totalValue, mode) {
+  var date = new Date().toLocaleDateString('vi-VN', {year:'numeric',month:'long',day:'numeric'});
+  var mLabel = {'DC':'Đường Chung','TD':'Tách Đường','TH':'Trà Hoa'}[mode] || mode;
 
-  // Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('DE XUAT NHAP HANG - DU BAO NVL', 14, 18);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Ngay xuat: ' + date + '  |  Mode: ' + mLabel + '  |  Du bao: ' + fcDays + ' ngay', 14, 26);
-  doc.setDrawColor(245, 166, 35);
-  doc.setLineWidth(0.8);
-  doc.line(14, 29, 196, 29);
+  var thead = '<tr>' + headerCols.map(function(h) { return '<th>' + h + '</th>'; }).join('') + '</tr>';
+  var tbody = bodyRows.map(function(row, i) {
+    return '<tr' + (i % 2 === 1 ? ' class="alt"' : '') + '>' +
+      row.map(function(cell, ci) {
+        return '<td' + (ci >= 3 ? ' class="num"' : '') + '>' + (cell == null ? '' : cell) + '</td>';
+      }).join('') + '</tr>';
+  }).join('');
 
-  // Table
-  var body = S.lastForecast.map(function(item, i) {
-    return [i + 1, item.code, item.name, item.isBTP ? 'BTP' : 'NVL',
-            Math.ceil(item.totalQty).toLocaleString(), item.unit || '',
-            fmtVND(item.totalCost) + ' d'];
-  });
-  var total = S.lastForecast.reduce(function(s, i) { return s + i.totalCost; }, 0);
-
-  doc.autoTable({
-    startY: 33,
-    head: [['#', 'Ma NVL', 'Ten NVL', 'Loai', 'So luong', 'DVT', 'Chi phi (VND)']],
-    body: body,
-    foot: [['', '', '', '', '', 'TONG CONG:', fmtVND(total) + ' d']],
-    headStyles: { fillColor: [61, 43, 31], textColor: 255, fontStyle: 'bold', fontSize: 9 },
-    bodyStyles: { fontSize: 8, textColor: [61, 43, 31] },
-    footStyles: { fillColor: [253, 243, 227], textColor: [61, 43, 31], fontStyle: 'bold', fontSize: 9 },
-    alternateRowStyles: { fillColor: [253, 247, 242] },
-    columnStyles: { 0:{cellWidth:8}, 1:{cellWidth:22}, 4:{halign:'right'}, 6:{halign:'right'} },
-    margin: { left: 14, right: 14 },
-    didDrawPage: function(data) {
-      doc.setFontSize(8);
-      doc.setTextColor(150);
-      doc.text('Phuc Tea Data Core System', 14, doc.internal.pageSize.height - 8);
-      doc.text('Trang ' + data.pageNumber, 196, doc.internal.pageSize.height - 8, { align: 'right' });
-    }
-  });
-
-  doc.save('PhucTea_Forecast_' + fcDays + 'ngay_' + new Date().toISOString().slice(0, 10) + '.pdf');
-  toast('Đã xuất PDF', 'ok');
+  return '<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">' +
+    '<title>' + title + '</title>' +
+    '<style>' +
+      'body{margin:0;padding:20px;font-family:\'Be Vietnam Pro\',Arial,sans-serif;color:#3D2B1F;font-size:12px}' +
+      '@import url(\'https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700;800&display=swap\');' +
+      '.header{border-bottom:3px solid #F5A623;padding-bottom:12px;margin-bottom:16px}' +
+      '.logo{font-size:10px;font-weight:700;color:#9C6B47;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}' +
+      'h1{font-size:22px;font-weight:800;margin:0 0 4px;color:#3D2B1F}' +
+      '.meta{font-size:11px;color:#718096;display:flex;gap:20px;flex-wrap:wrap}' +
+      '.meta span{display:flex;align-items:center;gap:4px}' +
+      'table{width:100%;border-collapse:collapse;margin-top:8px}' +
+      'th{background:#3D2B1F;color:#fff;padding:8px 10px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.5px}' +
+      'th.num,td.num{text-align:right}' +
+      'td{padding:7px 10px;border-bottom:1px solid #E8E0D4;font-size:11px}' +
+      'tr.alt td{background:#FAF7F2}' +
+      'tr:hover td{background:#FDF3E3}' +
+      '.total-row{background:#FDF3E3!important;border-top:2px solid #F5A623}' +
+      '.total-row td{font-weight:800;font-size:13px;color:#3D2B1F;padding:10px}' +
+      '.footer{margin-top:20px;padding-top:10px;border-top:1px solid #E8E0D4;display:flex;justify-content:space-between;font-size:10px;color:#718096}' +
+      '@media print{body{padding:10px}button{display:none}.no-print{display:none}}' +
+    '</style></head><body>' +
+    '<div class="header">' +
+      '<div class="logo">🍵 Phúc Tea Data Core System</div>' +
+      '<h1>' + title + '</h1>' +
+      '<div class="meta">' +
+        '<span>📅 ' + date + '</span>' +
+        '<span>📋 ' + subtitle + '</span>' +
+        '<span>⚖️ Mode: ' + mLabel + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<table><thead>' + thead + '</thead><tbody>' + tbody + '</tbody></table>' +
+    '<table style="margin-top:0"><tbody>' +
+      '<tr class="total-row"><td colspan="' + (headerCols.length - 2) + '"></td><td class="num" style="font-size:11px;font-weight:700;color:#9C6B47">' + totalLabel + '</td><td class="num">' + totalValue + '</td></tr>' +
+    '</tbody></table>' +
+    '<div class="footer"><span>Phúc Tea Data Core System — Xuất tự động</span><span>In lúc: ' + new Date().toLocaleString('vi-VN') + '</span></div>' +
+    '<div class="no-print" style="text-align:center;margin-top:20px">' +
+      '<button onclick="window.print()" style="padding:10px 24px;background:#F5A623;border:none;border-radius:8px;font-weight:700;font-size:14px;cursor:pointer;color:#3D2B1F">🖨️ In / Lưu PDF</button>' +
+      '<span style="margin-left:12px;font-size:11px;color:#718096">Dùng Chrome: Ctrl+P → Save as PDF</span>' +
+    '</div>' +
+  '</body></html>';
 }
+
+function printPDF(html, filename) {
+  var w = window.open('', '_blank', 'width=900,height=700,scrollbars=yes');
+  if (!w) { toast('Trình duyệt chặn popup — cho phép popup để xuất PDF', 'err'); return; }
+  w.document.write(html);
+  w.document.close();
+  // Auto-trigger print after fonts loaded
+  w.onload = function() {
+    setTimeout(function() { w.focus(); w.print(); }, 800);
+  };
+}
+
+function exportFcPDF() {
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Không có dữ liệu dự báo', 'err'); return; }
+  var fcDays   = parseInt(document.getElementById('fcDays').value) || 7;
+  var dataDays = parseInt(document.getElementById('dataDays').value) || 1;
+  var modeLabel = S.fcMode === 'rawonly' ? 'NVL thô' : 'Tiêu chuẩn';
+  var totalCost = S.lastForecast.reduce(function(s, i) { return s + i.totalCost; }, 0);
+
+  var headerCols = ['#', 'Tên NVL', 'Mã NVL', 'Loại', 'Số lượng', 'ĐVT', 'Chi phí ước (VNĐ)'];
+  var bodyRows = S.lastForecast.map(function(item, i) {
+    return [
+      i + 1,
+      item.name,
+      item.code,
+      item.isBTP ? 'BTP' : 'NVL',
+      Math.ceil(item.totalQty).toLocaleString('vi-VN'),
+      item.unit || '',
+      Math.round(item.totalCost).toLocaleString('vi-VN') + ' ₫'
+    ];
+  });
+
+  var subtitle = 'Dự báo ' + fcDays + ' ngày · Dữ liệu ' + dataDays + ' ngày · ' + modeLabel + ' · ' + S.lastForecast.length + ' loại NVL';
+  var html = buildPrintHTML(
+    'DỰ BÁO NHU CẦU NGUYÊN VẬT LIỆU',
+    subtitle,
+    headerCols, bodyRows,
+    'TỔNG CHI PHÍ DỰ KIẾN',
+    Math.round(totalCost).toLocaleString('vi-VN') + ' ₫',
+    S.mode
+  );
+  printPDF(html, 'PhucTea_Forecast_' + fcDays + 'ngay.pdf');
+  toast('Đã mở cửa sổ in — chọn "Save as PDF"', 'info');
+}
+
+
 
 // ── ORDER EXPORT ──
 function exportOrderExcel() {
@@ -1273,64 +1317,49 @@ function exportOrderExcel() {
 }
 
 function exportOrderPDF() {
-  if (!S.lastForecast || !S.lastForecast.length) { toast('Chưa có dữ liệu', 'err'); return; }
-  if (typeof window.jspdf === 'undefined' && typeof jsPDF === 'undefined') {
-    toast('Đang tải thư viện PDF, thử lại sau 2 giây...', 'info');
-    setTimeout(exportOrderPDF, 2000); return;
-  }
-  var mLabel = MODE_LABELS[S.mode] || S.mode;
-  var date   = new Date().toLocaleDateString('vi-VN');
-  var JsPDF  = (typeof window.jspdf !== 'undefined') ? window.jspdf.jsPDF : jsPDF;
-  var doc    = new JsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+  if (!S.lastForecast || !S.lastForecast.length) { toast('Chưa có dữ liệu đặt hàng', 'err'); return; }
   var nvlMap = {};
   (S.nvl || []).forEach(function(n) { nvlMap[n.code] = n; });
 
-  // Header
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
-  doc.text('DE XUAT NHAP HANG', 14, 18);
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Ngay: ' + date + '  |  Mode: ' + mLabel, 14, 26);
-  doc.setDrawColor(245, 166, 35);
-  doc.setLineWidth(0.8);
-  doc.line(14, 29, 283, 29);
-
-  var body = []; var totalCost = 0;
-  S.lastForecast.forEach(function(item, i) {
+  var totalCost = 0;
+  var bodyRows = S.lastForecast.map(function(item, i) {
     var nvl  = nvlMap[item.code];
-    var ps   = nvl ? (nvl.packSize || 1) : 1;
-    var pc   = nvl ? (nvl.priceChan || 0) : 0;
-    var uc   = nvl ? (nvl.unitChan || item.unit) : item.unit;
+    var ps   = nvl ? (nvl.packSize  || 1)  : 1;
+    var pc   = nvl ? (nvl.priceChan || 0)  : 0;
+    var uc   = nvl ? (nvl.unitChan  || item.unit) : item.unit;
+    var ul   = nvl ? (nvl.unitLe    || item.unit) : item.unit;
     var oq   = Math.ceil(item.totalQty / ps);
     var cost = oq * pc;
     totalCost += cost;
-    body.push([i + 1, item.name, item.code,
-               Math.ceil(item.totalQty).toLocaleString(), item.unit || '',
-               oq.toLocaleString(), uc, fmtVND(pc), fmtVND(cost)]);
+    var waste = (oq * ps) > 0 ? (((oq * ps - item.totalQty) / (oq * ps)) * 100).toFixed(1) + '%' : '0%';
+    return [
+      i + 1,
+      item.name,
+      item.code,
+      Math.ceil(item.totalQty).toLocaleString('vi-VN'),
+      ul,
+      oq.toLocaleString('vi-VN'),
+      uc,
+      pc ? Math.round(pc).toLocaleString('vi-VN') + ' ₫' : '—',
+      cost ? Math.round(cost).toLocaleString('vi-VN') + ' ₫' : '—',
+      waste
+    ];
   });
 
-  doc.autoTable({
-    startY: 33,
-    head: [['#', 'Ten NVL', 'Ma', 'Can (le)', 'DVT le', 'Dat (chan)', 'DVT chan', 'Don gia', 'Thanh tien']],
-    body: body,
-    foot: [['', '', '', '', '', '', '', 'TONG CONG:', fmtVND(totalCost) + ' d']],
-    headStyles: { fillColor: [61, 43, 31], textColor: 255, fontStyle: 'bold', fontSize: 8 },
-    bodyStyles: { fontSize: 8, textColor: [61, 43, 31] },
-    footStyles: { fillColor: [253, 243, 227], textColor: [61, 43, 31], fontStyle: 'bold', fontSize: 9 },
-    alternateRowStyles: { fillColor: [253, 247, 242] },
-    columnStyles: { 0:{cellWidth:8}, 3:{halign:'right'}, 5:{halign:'right'}, 7:{halign:'right'}, 8:{halign:'right'} },
-    margin: { left: 14, right: 14 },
-    didDrawPage: function(data) {
-      doc.setFontSize(8); doc.setTextColor(150);
-      doc.text('Phuc Tea Data Core System', 14, doc.internal.pageSize.height - 8);
-      doc.text('Trang ' + data.pageNumber, 283, doc.internal.pageSize.height - 8, { align: 'right' });
-    }
-  });
-
-  doc.save('PhucTea_DonHang_' + new Date().toISOString().slice(0, 10) + '.pdf');
-  toast('Đã xuất PDF', 'ok');
+  var headerCols = ['#', 'Tên NVL', 'Mã', 'Cần (lẻ)', 'ĐVT lẻ', 'Đặt (chẵn)', 'ĐVT chẵn', 'Đơn giá', 'Thành tiền', '% Dư'];
+  var html = buildPrintHTML(
+    'ĐỀ XUẤT NHẬP HÀNG',
+    'Quy đổi từ dự báo NVL · ' + S.lastForecast.length + ' loại',
+    headerCols, bodyRows,
+    'TỔNG TIỀN ĐẶT HÀNG',
+    Math.round(totalCost).toLocaleString('vi-VN') + ' ₫',
+    S.mode
+  );
+  printPDF(html, 'PhucTea_DonHang.pdf');
+  toast('Đã mở cửa sổ in — chọn "Save as PDF"', 'info');
 }
+
+
 
 
 // ============================================================
