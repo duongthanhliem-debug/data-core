@@ -1681,7 +1681,7 @@ async function callClaude(prompt) {
   var res = await fetch('https://api.anthropic.com/v1/messages', {
     method:'POST',
     headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1024,messages:[{role:'user',content:prompt}]})
+    body:JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1024,messages:[{role:'user',content:prompt}]})
   });
   if (!res.ok) { var eb=await res.json().catch(function(){return{};});throw new Error((eb&&eb.error&&eb.error.message)||'HTTP '+res.status); }
   var data=await res.json();
@@ -1849,7 +1849,7 @@ async function runCalAI() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-5',
         max_tokens: 4096,
         messages: [{ role: 'user', content: prompt }]
       })
