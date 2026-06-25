@@ -345,7 +345,7 @@ tr:hover td{background:var(--blue-xl)}
       <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg></span>Nguyên vật liệu
     </div>
     <div class="nav-item" id="nav-calories" data-page="calories">
-      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></span>Calories<span class="nav-badge" style="background:var(--green)">AI</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></span>Calories<span class="nav-badge">AI</span>
     </div>
     <div class="nav-sec-label" style="margin-top:6px">Intelligence</div>
     <div class="nav-item" id="nav-forecast" data-page="forecast">
@@ -1797,16 +1797,19 @@ async function initCaloriesPage() {
 function showCalSetupDone(calData) {
   var count = Object.keys(calData).length;
   document.getElementById('calSetupStatus').innerHTML =
-    '<div class="alert alert-ok" style="margin-bottom:12px">✅ Đã có dữ liệu dinh dưỡng cho <strong>'+count+' NVL</strong>. Bấm <em>Chỉnh sửa</em> để cập nhật hoặc <em>Reset</em> để làm lại từ đầu.</div>';
+    '<div class="alert alert-ok" style="margin-bottom:12px">✅ Đã có dữ liệu dinh dưỡng cho <strong>'+count+' NVL</strong>. Có thể <em>chỉnh sửa tay</em>, <em>cho AI phân tích lại</em>, hoặc <em>Reset</em> để làm lại từ đầu.</div>';
   document.getElementById('editCalDataBtn').style.display = 'inline-flex';
   document.getElementById('resetCalBtn').style.display = 'inline-flex';
+  document.getElementById('runCalAIBtn').style.display = 'inline-flex';
+  document.getElementById('runCalAIBtn').textContent = '🤖 AI phân tích lại';
   document.getElementById('calNVLTable').innerHTML = '';
   document.getElementById('calSaveRow').style.display = 'none';
 }
 
 // AI điền cal/gram cho toàn bộ NVL
 async function runCalAI() {
-  if (!S.apiKey) { toast('Cần Anthropic API Key trong Cài đặt', 'err'); return; }
+  var apiKey = S.apiKey || C.anthropicKey || localStorage.getItem('pt_apiKey') || '';
+  if (!apiKey) { toast('Cần Anthropic API Key trong Cài đặt', 'err'); return; }
 
   var btn = document.getElementById('runCalAIBtn');
   btn.disabled = true;
@@ -1840,7 +1843,7 @@ async function runCalAI() {
     var res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'x-api-key': S.apiKey,
+        'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
         'anthropic-dangerous-direct-browser-access': 'true'
@@ -1861,6 +1864,18 @@ async function runCalAI() {
     if (!parsed.items || !parsed.items.length) throw new Error('AI không trả về dữ liệu hợp lệ');
 
     renderCalNVLTable(parsed.items);
+    // Điền sẵn giá trị đã lưu trước vào bảng (nếu có) để so sánh
+    var existingData = getCalData();
+    if (existingData) {
+      var inputs = document.querySelectorAll('#calNVLTable input[data-idx]');
+      inputs.forEach(function(inp) {
+        var idx = parseInt(inp.dataset.idx);
+        var item = parsed.items[idx];
+        if (item && existingData[item.code] !== undefined) {
+          inp.style.background = '#fffbe6'; // highlight khác với AI mới
+        }
+      });
+    }
     document.getElementById('calSetupStatus').innerHTML =
       '<div class="alert alert-warn">🔍 AI đã ước tính <strong>'+parsed.items.length+' NVL</strong>. Hãy review và chỉnh sửa trực tiếp trong bảng trước khi lưu.</div>';
     document.getElementById('calSaveRow').style.display = 'block';
