@@ -1827,57 +1827,108 @@ async function runCalAI() {
     }
     if (!S.nvl || !S.nvl.length) throw new Error('Không tải được danh sách NVL');
 
-    // Gom nhóm NVL để gửi AI — gửi tên + đơn vị để AI hiểu ngữ cảnh
-    var nvlList = S.nvl.map(function(n) {
-      return n.code + '|' + n.name + '|' + (n.unitLe || 'g');
-    }).join(';');
-
-    var prompt =
-      'Bạn là chuyên gia dinh dưỡng F&B. Dưới đây là danh sách nguyên vật liệu (NVL) của một chuỗi trà sữa Việt Nam (Phúc Tea). ' +
-      'Nhiệm vụ: ước tính kcal/gram (hoặc kcal/ml nếu là chất lỏng) cho từng NVL dựa trên kiến thức dinh dưỡng. ' +
-      'Quy tắc: 1ml nước/trà ≈ 0 kcal, 1ml sữa ≈ 0.6 kcal, 1g đường ≈ 4 kcal, 1g bột ≈ 3.5 kcal, 1g kem ≈ 2 kcal, 1g thạch ≈ 0.8 kcal, 1g trân châu ≈ 3.5 kcal. ' +
-      'Danh sách NVL (định dạng: Mã|Tên|ĐVT): ' + nvlList + '. ' +
-      'Trả về JSON thuần túy (không markdown, bắt đầu bằng {): {"items":[{"code":"MÃ","name":"TÊN","unit":"ĐVT","kcalPerUnit":SỐ,"note":"ghi chú ngắn"},...]}. ' +
-      'kcalPerUnit là kcal trên 1 đơn vị (1g hoặc 1ml). Nếu không chắc thì ước tính thận trọng.';
-
-    var res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: prompt }]
-      })
+    // Gom NVL thành JSON array gọn — tránh ký tự đặc biệt phá vỡ JSON response
+    var nvlArr = S.nvl.map(function(n) {
+      return {
+        c: n.code,
+        n: n.name.replace(/"/g,"'"),   // tránh " trong tên NVL
+        u: (n.unitLe || 'g').replace(/"/g,"'")
+      };
     });
-    if (!res.ok) { var eb = await res.json().catch(function(){return{};}); throw new Error((eb.error && eb.error.message) || 'HTTP ' + res.status); }
-    var data = await res.json();
-    var raw = (data.content && data.content[0] && data.content[0].text) || '';
-    raw = raw.replace(/```[\w]*/g,'').replace(/```/g,'').trim();
-    var m = raw.match(/\{[\s\S]*\}/g);
-    if (m) raw = m[m.length-1];
-    var parsed = JSON.parse(raw);
-    if (!parsed.items || !parsed.items.length) throw new Error('AI không trả về dữ liệu hợp lệ');
+    // Chia batch 50 NVL / lần để tránh token overflow
+    var BATCH = 50;
+    var allItems = [];
+    for (var bi = 0; bi < nvlArr.length; bi += BATCH) {
+      var batch = nvlArr.slice(bi, bi + BATCH);
+      var batchStr = batch.map(function(x){ return x.c+'|'+x.n+'|'+x.u; }).join('\n');
 
-    renderCalNVLTable(parsed.items);
-    // Điền sẵn giá trị đã lưu trước vào bảng (nếu có) để so sánh
+      var prompt =
+        'Chuyen gia dinh duong F&B. Uoc tinh kcal tren 1 don vi (1g hoac 1ml) cho tung NVL tra sua Viet Nam.\n' +
+        'Quy tac: nuoc/tra=0, sua=0.6, duong=4, bot=3.5, kem=2, thach=0.8, tran chau=3.5, siro=3, condensed milk=3.2.\n' +
+        'Danh sach NVL (Ma|Ten|DVT):\n' + batchStr + '\n' +
+        'Tra ve JSON thuan tuy, chi co array, bat dau bang [, khong co markdown:\n' +
+        '[{"code":"MA","kcalPerUnit":SO,"note":"ghi chu ngan tieng Viet"},...]';
+
+      var res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 8000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+      if (!res.ok) {
+        var eb = await res.json().catch(function(){return{};});
+        throw new Error((eb.error && eb.error.message) || 'HTTP ' + res.status);
+      }
+      var data = await res.json();
+      var raw = (data.content && data.content[0] && data.content[0].text) || '';
+
+      // Robust JSON repair
+      raw = raw.replace(/```[\w]*/g,'').replace(/```/g,'').trim();
+      // Tìm array [...] đầu tiên
+      var arrMatch = raw.match(/\[[\s\S]*\]/);
+      if (!arrMatch) throw new Error('AI không trả về JSON array hợp lệ (batch '+(bi/BATCH+1)+')');
+      var arrStr = arrMatch[0];
+      // Cắt bỏ phần tử cuối bị cắt nếu JSON lỗi
+      var batchParsed;
+      try {
+        batchParsed = JSON.parse(arrStr);
+      } catch(parseErr) {
+        // Thử repair: cắt đến dấu } cuối cùng hợp lệ
+        var lastBrace = arrStr.lastIndexOf('}');
+        if (lastBrace > 0) {
+          var repaired = arrStr.slice(0, lastBrace+1) + ']';
+          batchParsed = JSON.parse(repaired);
+        } else {
+          throw new Error('Không thể parse JSON từ AI (batch '+(bi/BATCH+1)+'): '+parseErr.message);
+        }
+      }
+      // Merge tên từ S.nvl vào kết quả
+      var nvlMap = {};
+      S.nvl.forEach(function(n){ nvlMap[n.code] = n; });
+      batchParsed.forEach(function(item) {
+        var nvl = nvlMap[item.code];
+        allItems.push({
+          code:        item.code,
+          name:        nvl ? nvl.name : item.code,
+          unit:        nvl ? (nvl.unitLe || 'g') : 'g',
+          kcalPerUnit: parseFloat(item.kcalPerUnit) || 0,
+          note:        item.note || ''
+        });
+      });
+
+      // Nếu nhiều batch, cập nhật progress
+      if (nvlArr.length > BATCH) {
+        var done = Math.min(bi + BATCH, nvlArr.length);
+        document.getElementById('calSetupStatus').innerHTML =
+          '<div class="loader"><div class="spin"></div>Đang xử lý... '+done+'/'+nvlArr.length+' NVL</div>';
+      }
+    }
+
+    if (!allItems.length) throw new Error('AI không trả về dữ liệu hợp lệ');
+
+    renderCalNVLTable(allItems);
+    // Highlight ô nào khác với data đã lưu trước
     var existingData = getCalData();
     if (existingData) {
       var inputs = document.querySelectorAll('#calNVLTable input[data-idx]');
       inputs.forEach(function(inp) {
         var idx = parseInt(inp.dataset.idx);
-        var item = parsed.items[idx];
+        var item = allItems[idx];
         if (item && existingData[item.code] !== undefined) {
-          inp.style.background = '#fffbe6'; // highlight khác với AI mới
+          inp.style.background = '#fffbe6';
         }
       });
     }
     document.getElementById('calSetupStatus').innerHTML =
-      '<div class="alert alert-warn">🔍 AI đã ước tính <strong>'+parsed.items.length+' NVL</strong>. Hãy review và chỉnh sửa trực tiếp trong bảng trước khi lưu.</div>';
+      '<div class="alert alert-warn">🔍 AI đã ước tính <strong>'+allItems.length+' NVL</strong>. Hãy review và chỉnh sửa trực tiếp trong bảng trước khi lưu.</div>';
     document.getElementById('calSaveRow').style.display = 'block';
 
   } catch(e) {
