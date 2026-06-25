@@ -344,6 +344,9 @@ tr:hover td{background:var(--blue-xl)}
     <div class="nav-item" id="nav-nvl" data-page="nvl">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg></span>Nguyên vật liệu
     </div>
+    <div class="nav-item" id="nav-calories" data-page="calories">
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/><path d="M12 6v6l4 2"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg></span>Calories<span class="nav-badge" style="background:var(--green)">AI</span>
+    </div>
     <div class="nav-sec-label" style="margin-top:6px">Intelligence</div>
     <div class="nav-item" id="nav-forecast" data-page="forecast">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></span>Forecasting<span class="nav-badge">AI</span>
@@ -590,6 +593,65 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
   </div>
+  <!-- ═══ CALORIES ═══ -->
+  <div class="page" id="page-calories">
+    <div class="page-hd">
+      <h1>🔥 Calories</h1>
+      <p>Tính lượng calories từng sản phẩm dựa trên công thức định lượng — Mode: <span id="calModeLabel"></span></p>
+    </div>
+
+    <!-- Bước 1: AI điền cal/gram cho NVL -->
+    <div class="card mb-4" id="calSetupCard">
+      <div class="card-hd">
+        <span class="card-icon">🤖</span>
+        <div>
+          <div class="card-title">Bước 1 — AI điền dữ liệu dinh dưỡng NVL</div>
+          <div class="card-sub">Claude ước tính cal/gram cho toàn bộ NVL · Bạn review & chỉnh trước khi lưu</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div id="calSetupStatus"></div>
+        <div class="btn-group">
+          <button class="btn btn-primary" id="runCalAIBtn">🤖 AI điền Calories NVL</button>
+          <button class="btn btn-secondary" id="editCalDataBtn" style="display:none">✏️ Chỉnh sửa dữ liệu</button>
+          <button class="btn btn-secondary" id="resetCalBtn" style="display:none">🗑 Reset dữ liệu</button>
+        </div>
+        <div id="calNVLTable" style="margin-top:16px"></div>
+        <div id="calSaveRow" style="display:none;margin-top:12px">
+          <div class="alert alert-warn" style="margin-bottom:10px">⚠️ Review kỹ trước khi lưu. AI ước tính có thể sai ±10%. Chỉnh sửa trực tiếp trong bảng.</div>
+          <div class="btn-group">
+            <button class="btn btn-green" id="saveCalDataBtn">💾 Xác nhận & Lưu</button>
+            <button class="btn btn-secondary" id="cancelCalBtn">Hủy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bước 2: Bảng calories sản phẩm -->
+    <div class="card" id="calResultCard">
+      <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="card-title">🔥 Calories từng sản phẩm</div>
+          <div class="card-sub" id="calProdCount"></div>
+        </div>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm sản phẩm..." style="width:170px"></div>
+          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:140px">
+            <option value="">Tất cả nhóm</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺ Tính lại</button>
+        </div>
+      </div>
+      <div id="calBodyWrap">
+        <div class="empty" style="padding:40px">
+          <div class="empty-icon">🔥</div>
+          <div class="empty-title">Chưa có dữ liệu calories</div>
+          <div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <div id="toast"></div>
@@ -896,7 +958,7 @@ function setMode(m) {
 // ============================================================
 // NAVIGATION
 // ============================================================
-var PAGE_TITLES = { dash:'Dashboard', cost:'Cost Engine', products:'Sản phẩm', nvl:'Nguyên vật liệu', forecast:'Forecasting', order:'Đặt hàng', ai:'AI Analysis', settings:'Cài đặt' };
+var PAGE_TITLES = { dash:'Dashboard', cost:'Cost Engine', products:'Sản phẩm', nvl:'Nguyên vật liệu', calories:'Calories', forecast:'Forecasting', order:'Đặt hàng', ai:'AI Analysis', settings:'Cài đặt' };
 
 function nav(pid) {
   document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('active'); });
@@ -911,6 +973,7 @@ function nav(pid) {
   else if (pid==='nvl') loadNVL();
   else if (pid==='cost') document.getElementById('costModeLabel').textContent = MODE_LABELS[S.mode];
   else if (pid==='settings') loadSettings();
+  else if (pid==='calories') initCaloriesPage();
 }
 
 function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebarOverlay').classList.add('open'); }
@@ -1702,6 +1765,303 @@ async function runAIResearch() {
 }
 
 // ============================================================
+// CALORIES MODULE
+// ============================================================
+var CAL_STORAGE_KEY = 'pt_cal_nvl_v1'; // { nvlCode: kcalPerGram }
+
+function getCalData() {
+  try { return JSON.parse(localStorage.getItem(CAL_STORAGE_KEY) || 'null'); } catch(e) { return null; }
+}
+function saveCalData(data) {
+  localStorage.setItem(CAL_STORAGE_KEY, JSON.stringify(data));
+}
+function clearCalData() {
+  localStorage.removeItem(CAL_STORAGE_KEY);
+}
+
+// Khởi tạo trang Calories
+async function initCaloriesPage() {
+  document.getElementById('calModeLabel').textContent = MODE_LABELS[S.mode];
+  var calData = getCalData();
+  if (calData) {
+    showCalSetupDone(calData);
+    await renderCalTable(calData);
+  } else {
+    document.getElementById('calSetupStatus').innerHTML =
+      '<div class="alert alert-info" style="margin-bottom:12px">💡 Lần đầu sử dụng: Bấm <strong>"AI điền Calories NVL"</strong> để Claude tự động ước tính cal/gram cho toàn bộ NVL. Bạn sẽ review & xác nhận trước khi lưu.</div>';
+    document.getElementById('editCalDataBtn').style.display = 'none';
+    document.getElementById('resetCalBtn').style.display = 'none';
+  }
+}
+
+function showCalSetupDone(calData) {
+  var count = Object.keys(calData).length;
+  document.getElementById('calSetupStatus').innerHTML =
+    '<div class="alert alert-ok" style="margin-bottom:12px">✅ Đã có dữ liệu dinh dưỡng cho <strong>'+count+' NVL</strong>. Bấm <em>Chỉnh sửa</em> để cập nhật hoặc <em>Reset</em> để làm lại từ đầu.</div>';
+  document.getElementById('editCalDataBtn').style.display = 'inline-flex';
+  document.getElementById('resetCalBtn').style.display = 'inline-flex';
+  document.getElementById('calNVLTable').innerHTML = '';
+  document.getElementById('calSaveRow').style.display = 'none';
+}
+
+// AI điền cal/gram cho toàn bộ NVL
+async function runCalAI() {
+  if (!S.apiKey) { toast('Cần Anthropic API Key trong Cài đặt', 'err'); return; }
+
+  var btn = document.getElementById('runCalAIBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ AI đang phân tích...';
+  document.getElementById('calSetupStatus').innerHTML =
+    '<div class="loader"><div class="spin"></div>Claude đang tra cứu dữ liệu dinh dưỡng cho từng NVL...</div>';
+  document.getElementById('calNVLTable').innerHTML = '';
+  document.getElementById('calSaveRow').style.display = 'none';
+
+  try {
+    // Load NVL nếu chưa có
+    if (!S.nvl || !S.nvl.length) {
+      var r = await api({ action: 'getMaterials' });
+      if (r.data) S.nvl = r.data;
+    }
+    if (!S.nvl || !S.nvl.length) throw new Error('Không tải được danh sách NVL');
+
+    // Gom nhóm NVL để gửi AI — gửi tên + đơn vị để AI hiểu ngữ cảnh
+    var nvlList = S.nvl.map(function(n) {
+      return n.code + '|' + n.name + '|' + (n.unitLe || 'g');
+    }).join(';');
+
+    var prompt =
+      'Bạn là chuyên gia dinh dưỡng F&B. Dưới đây là danh sách nguyên vật liệu (NVL) của một chuỗi trà sữa Việt Nam (Phúc Tea). ' +
+      'Nhiệm vụ: ước tính kcal/gram (hoặc kcal/ml nếu là chất lỏng) cho từng NVL dựa trên kiến thức dinh dưỡng. ' +
+      'Quy tắc: 1ml nước/trà ≈ 0 kcal, 1ml sữa ≈ 0.6 kcal, 1g đường ≈ 4 kcal, 1g bột ≈ 3.5 kcal, 1g kem ≈ 2 kcal, 1g thạch ≈ 0.8 kcal, 1g trân châu ≈ 3.5 kcal. ' +
+      'Danh sách NVL (định dạng: Mã|Tên|ĐVT): ' + nvlList + '. ' +
+      'Trả về JSON thuần túy (không markdown, bắt đầu bằng {): {"items":[{"code":"MÃ","name":"TÊN","unit":"ĐVT","kcalPerUnit":SỐ,"note":"ghi chú ngắn"},...]}. ' +
+      'kcalPerUnit là kcal trên 1 đơn vị (1g hoặc 1ml). Nếu không chắc thì ước tính thận trọng.';
+
+    var res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': S.apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    if (!res.ok) { var eb = await res.json().catch(function(){return{};}); throw new Error((eb.error && eb.error.message) || 'HTTP ' + res.status); }
+    var data = await res.json();
+    var raw = (data.content && data.content[0] && data.content[0].text) || '';
+    raw = raw.replace(/```[\w]*/g,'').replace(/```/g,'').trim();
+    var m = raw.match(/\{[\s\S]*\}/g);
+    if (m) raw = m[m.length-1];
+    var parsed = JSON.parse(raw);
+    if (!parsed.items || !parsed.items.length) throw new Error('AI không trả về dữ liệu hợp lệ');
+
+    renderCalNVLTable(parsed.items);
+    document.getElementById('calSetupStatus').innerHTML =
+      '<div class="alert alert-warn">🔍 AI đã ước tính <strong>'+parsed.items.length+' NVL</strong>. Hãy review và chỉnh sửa trực tiếp trong bảng trước khi lưu.</div>';
+    document.getElementById('calSaveRow').style.display = 'block';
+
+  } catch(e) {
+    document.getElementById('calSetupStatus').innerHTML = '<div class="alert alert-err">❌ '+e.message+'</div>';
+    toast('Lỗi AI: '+e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🤖 AI điền Calories NVL';
+  }
+}
+
+// Render bảng NVL để review/chỉnh sửa
+var _calAIItems = [];
+function renderCalNVLTable(items) {
+  _calAIItems = items;
+  var rows = items.map(function(item, i) {
+    return '<tr>' +
+      '<td><span class="td-code">'+item.code+'</span></td>' +
+      '<td style="font-weight:600">'+item.name+'</td>' +
+      '<td style="text-align:center">'+item.unit+'</td>' +
+      '<td style="text-align:center">' +
+        '<input type="number" class="form-input" data-idx="'+i+'" style="width:80px;text-align:center;padding:4px 6px;font-size:12px" value="'+Number(item.kcalPerUnit).toFixed(2)+'" min="0" step="0.01">' +
+      '</td>' +
+      '<td style="text-align:center">'+calLevelBadge(item.kcalPerUnit)+'</td>' +
+      '<td style="font-size:11px;color:var(--gray)">'+( item.note||'')+'</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('calNVLTable').innerHTML =
+    '<div class="table-wrap" style="max-height:360px;overflow-y:auto">' +
+    '<table><thead><tr>' +
+      '<th>Mã NVL</th><th>Tên</th><th style="text-align:center">ĐVT</th>' +
+      '<th style="text-align:center">kcal/đvt</th><th style="text-align:center">Mức</th><th>Ghi chú AI</th>' +
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function calLevelBadge(kcal) {
+  var k = parseFloat(kcal) || 0;
+  if (k === 0) return '<span class="badge badge-gray">0</span>';
+  if (k <= 0.5) return '<span class="badge badge-green">Thấp</span>';
+  if (k <= 2)   return '<span class="badge badge-gold">TB</span>';
+  return '<span class="badge badge-red">Cao</span>';
+}
+
+// Lưu dữ liệu từ bảng review
+function saveCalFromTable() {
+  var inputs = document.querySelectorAll('#calNVLTable input[data-idx]');
+  var calData = {};
+  inputs.forEach(function(inp) {
+    var idx = parseInt(inp.dataset.idx);
+    var item = _calAIItems[idx];
+    if (item) calData[item.code] = parseFloat(inp.value) || 0;
+  });
+  saveCalData(calData);
+  showCalSetupDone(calData);
+  renderCalTable(calData);
+  toast('✅ Đã lưu dữ liệu dinh dưỡng '+Object.keys(calData).length+' NVL', 'ok');
+}
+
+// Chỉnh sửa lại dữ liệu đã lưu
+function editCalData() {
+  var calData = getCalData();
+  if (!calData) return;
+  // Build items từ calData + S.nvl để có đủ tên
+  var nvlMap = {};
+  (S.nvl || []).forEach(function(n){ nvlMap[n.code] = n; });
+  var items = Object.keys(calData).map(function(code) {
+    var nvl = nvlMap[code];
+    return { code: code, name: nvl ? nvl.name : code, unit: nvl ? nvl.unitLe : 'g', kcalPerUnit: calData[code], note: 'Đã chỉnh sửa thủ công' };
+  });
+  _calAIItems = items;
+  renderCalNVLTable(items);
+  document.getElementById('calSaveRow').style.display = 'block';
+  document.getElementById('calSetupStatus').innerHTML =
+    '<div class="alert alert-info">✏️ Đang chỉnh sửa dữ liệu dinh dưỡng. Sửa xong bấm Xác nhận & Lưu.</div>';
+}
+
+// Render bảng calories sản phẩm
+async function renderCalTable(calData) {
+  var wrap = document.getElementById('calBodyWrap');
+  wrap.innerHTML = '<div class="loader"><div class="spin"></div>Đang tính calories...</div>';
+
+  try {
+    // Load products + recipes nếu chưa có
+    if (!S.products || !S.products.length) {
+      var pr = await api({ action: 'getAllCosts' });
+      if (pr.data) S.products = pr.data;
+    }
+    var recRes = await api({ action: 'getRecipesByMode' });
+    var recipes = recRes.data || {};
+    var btpRes  = await api({ action: 'getBTPRecipes' });
+    var btpMap  = btpRes.data || {};
+
+    var results = [];
+    S.products.forEach(function(prod) {
+      var recipe = recipes[prod.code];
+      if (!recipe) return;
+      var totalKcal = 0;
+      var hasData   = false;
+      var missing   = [];
+
+      recipe.ingredients.forEach(function(ing) {
+        var isBTP = ing.code && ing.code.indexOf('BTP') === 0;
+        if (isBTP) {
+          var btp = btpMap[ing.code];
+          if (!btp) return;
+          var bs = btp.batchSize || 1;
+          btp.ingredients.forEach(function(bi) {
+            var rawQty = ing.qty * (bs > 0 ? bi.qtyPerBatch / bs : 0);
+            var kcal = calData[bi.code];
+            if (kcal !== undefined) { totalKcal += rawQty * kcal; hasData = true; }
+            else missing.push(bi.name);
+          });
+        } else {
+          var kcal = calData[ing.code];
+          if (kcal !== undefined) { totalKcal += ing.qty * kcal; hasData = true; }
+          else missing.push(ing.name);
+        }
+      });
+
+      results.push({
+        code:     prod.code,
+        iposCode: prod.iposCode,
+        name:     prod.name,
+        group:    prod.group,
+        kcal:     Math.round(totalKcal),
+        hasData:  hasData,
+        missing:  missing
+      });
+    });
+
+    results.sort(function(a,b){ return b.kcal - a.kcal; });
+
+    // Populate group filter
+    var groups = [...new Set(results.map(function(r){ return r.group; }).filter(Boolean))].sort();
+    var sel = document.getElementById('calGroupFilter');
+    sel.innerHTML = '<option value="">Tất cả nhóm</option>' +
+      groups.map(function(g){ return '<option value="'+g+'">'+g+'</option>'; }).join('');
+
+    document.getElementById('calProdCount').textContent = results.length + ' sản phẩm · Mode: ' + MODE_LABELS[S.mode];
+    window._calResults = results;
+    renderCalRows(results);
+
+  } catch(e) {
+    wrap.innerHTML = '<div class="alert alert-err" style="margin:16px">❌ '+e.message+'</div>';
+  }
+}
+
+function renderCalRows(list) {
+  if (!list.length) {
+    document.getElementById('calBodyWrap').innerHTML =
+      '<div class="empty" style="padding:30px"><div class="empty-icon">🔍</div><div class="empty-title">Không tìm thấy</div></div>';
+    return;
+  }
+  var rows = list.map(function(p) {
+    var badge = kcalBadge(p.kcal);
+    var warn  = p.missing.length ? '<span title="Thiếu: '+p.missing.slice(0,3).join(', ')+(p.missing.length>3?'...':'')+'" style="color:var(--gold);cursor:help;margin-left:4px">⚠️</span>' : '';
+    return '<tr>' +
+      '<td><span class="td-code">'+p.code+'</span></td>' +
+      '<td><span class="td-code">'+p.iposCode+'</span></td>' +
+      '<td style="font-weight:600">'+p.name+warn+'</td>' +
+      '<td><span class="badge badge-gray">'+(p.group||'—')+'</span></td>' +
+      '<td style="text-align:right;font-weight:800;font-size:14px;color:var(--brown)">'+
+        (p.hasData ? p.kcal.toLocaleString('vi-VN') : '<span style="color:var(--gray)">—</span>') +
+      '</td>' +
+      '<td style="text-align:center">'+badge+'</td>' +
+    '</tr>';
+  }).join('');
+
+  document.getElementById('calBodyWrap').innerHTML =
+    '<div class="table-wrap"><table>' +
+    '<thead><tr>' +
+      '<th>Mã SP</th><th>IPOS</th><th>Tên sản phẩm</th><th>Nhóm</th>' +
+      '<th style="text-align:right">kcal/ly</th><th style="text-align:center">Mức</th>' +
+    '</tr></thead>' +
+    '<tbody>'+rows+'</tbody></table></div>';
+}
+
+function kcalBadge(kcal) {
+  if (!kcal || kcal <= 0) return '<span class="badge badge-gray">—</span>';
+  if (kcal < 150)  return '<span class="badge badge-green">🟢 Thấp</span>';
+  if (kcal < 300)  return '<span class="badge badge-gold">🟡 Vừa</span>';
+  if (kcal < 450)  return '<span class="badge badge-red">🟠 Cao</span>';
+  return '<span class="badge badge-red" style="background:#7f1d1d;color:#fff">🔴 Rất cao</span>';
+}
+
+function filterCalTable() {
+  var list = window._calResults || [];
+  var q    = (document.getElementById('calSearch').value || '').toLowerCase().trim();
+  var grp  = document.getElementById('calGroupFilter').value;
+  var filtered = list.filter(function(p) {
+    var matchQ   = !q || p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
+    var matchGrp = !grp || p.group === grp;
+    return matchQ && matchGrp;
+  });
+  renderCalRows(filtered);
+}
+
+// ============================================================
 // INIT — tất cả addEventListener trong DOMContentLoaded
 // ============================================================
 document.addEventListener('DOMContentLoaded', function() {
@@ -1781,6 +2141,39 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('runAICostBtn').addEventListener('click', runAICost);
   document.getElementById('runAIResearchBtn').addEventListener('click', runAIResearch);
+
+  // ----- Calories -----
+  document.getElementById('runCalAIBtn').addEventListener('click', runCalAI);
+  document.getElementById('editCalDataBtn').addEventListener('click', editCalData);
+  document.getElementById('resetCalBtn').addEventListener('click', function() {
+    if (confirm('Reset toàn bộ dữ liệu calories NVL? Bạn sẽ cần chạy AI lại.')) {
+      clearCalData();
+      window._calResults = [];
+      document.getElementById('calSetupStatus').innerHTML =
+        '<div class="alert alert-info">💡 Dữ liệu đã được reset. Bấm "AI điền Calories NVL" để làm lại.</div>';
+      document.getElementById('editCalDataBtn').style.display = 'none';
+      document.getElementById('resetCalBtn').style.display = 'none';
+      document.getElementById('calNVLTable').innerHTML = '';
+      document.getElementById('calSaveRow').style.display = 'none';
+      document.getElementById('calBodyWrap').innerHTML =
+        '<div class="empty" style="padding:40px"><div class="empty-icon">🔥</div><div class="empty-title">Chưa có dữ liệu calories</div><div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div></div>';
+    }
+  });
+  document.getElementById('saveCalDataBtn').addEventListener('click', saveCalFromTable);
+  document.getElementById('cancelCalBtn').addEventListener('click', function() {
+    document.getElementById('calNVLTable').innerHTML = '';
+    document.getElementById('calSaveRow').style.display = 'none';
+    var saved = getCalData();
+    if (saved) showCalSetupDone(saved);
+    else document.getElementById('calSetupStatus').innerHTML = '';
+  });
+  document.getElementById('calSearch').addEventListener('input', filterCalTable);
+  document.getElementById('calGroupFilter').addEventListener('change', filterCalTable);
+  document.getElementById('reloadCalBtn').addEventListener('click', function() {
+    var calData = getCalData();
+    if (calData) renderCalTable(calData);
+    else toast('Chưa có dữ liệu calories', 'err');
+  });
 });
 </script>
 </body>
