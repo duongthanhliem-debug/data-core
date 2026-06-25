@@ -606,7 +606,7 @@ tr:hover td{background:var(--blue-xl)}
         <span class="card-icon">🤖</span>
         <div>
           <div class="card-title">Bước 1 — AI điền dữ liệu dinh dưỡng NVL</div>
-          <div class="card-sub">Claude ước tính cal/gram cho toàn bộ NVL · Bạn review & chỉnh trước khi lưu</div>
+          <div class="card-sub">Claude ước tính cal/gram cho toàn bộ NVL thô · BTP lồng BTP được tính đệ quy tự động · Bạn review & chỉnh trước khi lưu</div>
         </div>
       </div>
       <div class="card-body">
@@ -635,9 +635,20 @@ tr:hover td{background:var(--blue-xl)}
           <div class="card-sub" id="calProdCount"></div>
         </div>
         <div class="flex gap-2" style="flex-wrap:wrap">
-          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm sản phẩm..." style="width:170px"></div>
-          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:140px">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm sản phẩm..." style="width:150px"></div>
+          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:130px">
             <option value="">Tất cả nhóm</option>
+          </select>
+          <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:130px">
+            <option value="">Tất cả mức</option>
+            <option value="low">🟢 Thấp &lt;150</option>
+            <option value="mid">🟡 Vừa 150-300</option>
+            <option value="high">🟠 Cao 300-450</option>
+            <option value="veryhigh">🔴 Rất cao &gt;450</option>
+          </select>
+          <select class="form-input form-select btn-sm" id="calSortOrder" style="width:150px">
+            <option value="desc">↓ Cao → Thấp</option>
+            <option value="asc">↑ Thấp → Cao</option>
           </select>
           <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺ Tính lại</button>
         </div>
@@ -2023,31 +2034,42 @@ async function renderCalTable(calData) {
     var btpMap  = btpRes.data || {};
 
     var results = [];
+
+    // Hàm đệ quy tính cal — xử lý BTP lồng BTP (vd BTP02 nằm trong BTP khác)
+    function calcIngKcal(ingCode, ingQty, btpMap, calData, missing, depth) {
+      if (depth > 5) return 0; // chặn vòng lặp vô hạn
+      var isBTP = ingCode && ingCode.indexOf('BTP') === 0;
+      if (isBTP) {
+        var btp = btpMap[ingCode];
+        if (!btp) { missing.push(ingCode + ' (thiếu CT BTP)'); return 0; }
+        var bs = btp.batchSize || 1;
+        var total = 0;
+        btp.ingredients.forEach(function(bi) {
+          var rawQty = ingQty * (bs > 0 ? bi.qtyPerBatch / bs : 0);
+          // Đệ quy — bi có thể cũng là BTP
+          total += calcIngKcal(bi.code, rawQty, btpMap, calData, missing, depth + 1);
+        });
+        return total;
+      } else {
+        var kcal = calData[ingCode];
+        if (kcal !== undefined) return ingQty * kcal;
+        // Không tìm thấy trong calData — ghi nhận thiếu (chỉ ghi 1 lần)
+        if (missing.indexOf(ingCode) === -1) missing.push(ingCode);
+        return 0;
+      }
+    }
+
     S.products.forEach(function(prod) {
       var recipe = recipes[prod.code];
       if (!recipe) return;
       var totalKcal = 0;
-      var hasData   = false;
       var missing   = [];
 
       recipe.ingredients.forEach(function(ing) {
-        var isBTP = ing.code && ing.code.indexOf('BTP') === 0;
-        if (isBTP) {
-          var btp = btpMap[ing.code];
-          if (!btp) return;
-          var bs = btp.batchSize || 1;
-          btp.ingredients.forEach(function(bi) {
-            var rawQty = ing.qty * (bs > 0 ? bi.qtyPerBatch / bs : 0);
-            var kcal = calData[bi.code];
-            if (kcal !== undefined) { totalKcal += rawQty * kcal; hasData = true; }
-            else missing.push(bi.name);
-          });
-        } else {
-          var kcal = calData[ing.code];
-          if (kcal !== undefined) { totalKcal += ing.qty * kcal; hasData = true; }
-          else missing.push(ing.name);
-        }
+        totalKcal += calcIngKcal(ing.code, ing.qty, btpMap, calData, missing, 0);
       });
+
+      var hasData = totalKcal > 0 || (recipe.ingredients.length > 0 && missing.length < recipe.ingredients.length);
 
       results.push({
         code:     prod.code,
@@ -2116,14 +2138,33 @@ function kcalBadge(kcal) {
 }
 
 function filterCalTable() {
-  var list = window._calResults || [];
-  var q    = (document.getElementById('calSearch').value || '').toLowerCase().trim();
-  var grp  = document.getElementById('calGroupFilter').value;
+  var list  = window._calResults || [];
+  var q     = (document.getElementById('calSearch').value || '').toLowerCase().trim();
+  var grp   = document.getElementById('calGroupFilter').value;
+  var lvl   = document.getElementById('calLevelFilter').value;
+  var sort  = document.getElementById('calSortOrder').value;
+
   var filtered = list.filter(function(p) {
     var matchQ   = !q || p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
     var matchGrp = !grp || p.group === grp;
-    return matchQ && matchGrp;
+    var matchLvl = true;
+    if (lvl && p.hasData) {
+      var k = p.kcal;
+      if (lvl === 'low')      matchLvl = k < 150;
+      else if (lvl === 'mid') matchLvl = k >= 150 && k < 300;
+      else if (lvl === 'high')     matchLvl = k >= 300 && k < 450;
+      else if (lvl === 'veryhigh') matchLvl = k >= 450;
+    } else if (lvl && !p.hasData) {
+      matchLvl = false;
+    }
+    return matchQ && matchGrp && matchLvl;
   });
+
+  // Sort
+  filtered.sort(function(a, b) {
+    return sort === 'asc' ? a.kcal - b.kcal : b.kcal - a.kcal;
+  });
+
   renderCalRows(filtered);
 }
 
@@ -2235,6 +2276,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   document.getElementById('calSearch').addEventListener('input', filterCalTable);
   document.getElementById('calGroupFilter').addEventListener('change', filterCalTable);
+  document.getElementById('calLevelFilter').addEventListener('change', filterCalTable);
+  document.getElementById('calSortOrder').addEventListener('change', filterCalTable);
   document.getElementById('reloadCalBtn').addEventListener('click', function() {
     var calData = getCalData();
     if (calData) renderCalTable(calData);
