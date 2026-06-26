@@ -268,6 +268,7 @@ tr:hover td{background:var(--blue-xl)}
   #calDetailCard{
     position:fixed;left:12px;right:12px;top:8%;bottom:8%;
     z-index:200;display:none;flex-direction:column;
+    background:#fff!important;opacity:1!important;
     box-shadow:0 20px 50px rgba(0,0,0,.35);
   }
   #calDetailCard.open{display:flex}
@@ -984,19 +985,18 @@ async function api(params) {
   try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
 }
 
-// Dùng cho các action ghi data LỚN (vd saveCalData) — gửi qua POST body
-// để tránh vượt giới hạn độ dài URL khi GET (gây lưu thất bại âm thầm với data nhiều NVL).
+// Dùng cho các action ghi data LỚN (vd saveCalData) — gửi JSON qua POST body (text/plain
+// để tránh CORS preflight), đọc trực tiếp ở GAS qua e.postData.contents — đáng tin cậy hơn
+// URLSearchParams khi đi qua các bước redirect nội bộ của Apps Script.
 async function apiPost(params) {
   if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
-  var body = new URLSearchParams();
-  Object.keys(params).forEach(function(k) {
-    var v = params[k];
-    if (v === undefined || v === null) return;
-    if (typeof v === 'object') body.set(k, JSON.stringify(v));
-    else body.set(k, String(v));
+  var payload = Object.assign({}, params, { mode: S.mode });
+  var res = await fetch(S.url, {
+    method: 'POST',
+    redirect: 'follow',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
   });
-  body.set('mode', S.mode);
-  var res = await fetch(S.url, { method: 'POST', redirect: 'follow', body: body });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   var text = await res.text();
   try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
