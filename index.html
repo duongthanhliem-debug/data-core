@@ -627,37 +627,56 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
 
-    <!-- Bước 2: Bảng calories sản phẩm -->
-    <div class="card" id="calResultCard">
-      <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
-        <div>
-          <div class="card-title">🔥 Calories từng sản phẩm</div>
-          <div class="card-sub" id="calProdCount"></div>
-        </div>
-        <div class="flex gap-2" style="flex-wrap:wrap">
-          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm sản phẩm..." style="width:150px"></div>
-          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:130px">
-            <option value="">Tất cả nhóm</option>
-          </select>
-          <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:130px">
-            <option value="">Tất cả mức</option>
-            <option value="low">🟢 Thấp &lt;150</option>
-            <option value="mid">🟡 Vừa 150-300</option>
-            <option value="high">🟠 Cao 300-450</option>
-            <option value="veryhigh">🔴 Rất cao &gt;450</option>
-          </select>
-          <select class="form-input form-select btn-sm" id="calSortOrder" style="width:150px">
-            <option value="desc">↓ Cao → Thấp</option>
-            <option value="asc">↑ Thấp → Cao</option>
-          </select>
-          <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺ Tính lại</button>
+    <!-- Bước 2: Bảng calories sản phẩm + detail panel -->
+    <div class="g2" style="align-items:start">
+      <div>
+        <div class="card" id="calResultCard">
+          <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
+            <div>
+              <div class="card-title">🔥 Calories từng sản phẩm</div>
+              <div class="card-sub" id="calProdCount"></div>
+            </div>
+            <div class="flex gap-2" style="flex-wrap:wrap">
+              <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm sản phẩm..." style="width:150px"></div>
+              <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:130px">
+                <option value="">Tất cả nhóm</option>
+              </select>
+              <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:130px">
+                <option value="">Tất cả mức</option>
+                <option value="low">🟢 Thấp &lt;150</option>
+                <option value="mid">🟡 Vừa 150-300</option>
+                <option value="high">🟠 Cao 300-450</option>
+                <option value="veryhigh">🔴 Rất cao &gt;450</option>
+              </select>
+              <select class="form-input form-select btn-sm" id="calSortOrder" style="width:150px">
+                <option value="desc">↓ Cao → Thấp</option>
+                <option value="asc">↑ Thấp → Cao</option>
+              </select>
+              <button class="btn btn-secondary btn-sm" id="exportCalExcelBtn">⬇ Excel</button>
+              <button class="btn btn-secondary btn-sm" id="exportCalPDFBtn">📄 PDF</button>
+              <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺ Tính lại</button>
+            </div>
+          </div>
+          <div id="calBodyWrap">
+            <div class="empty" style="padding:40px">
+              <div class="empty-icon">🔥</div>
+              <div class="empty-title">Chưa có dữ liệu calories</div>
+              <div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div>
+            </div>
+          </div>
         </div>
       </div>
-      <div id="calBodyWrap">
-        <div class="empty" style="padding:40px">
-          <div class="empty-icon">🔥</div>
-          <div class="empty-title">Chưa có dữ liệu calories</div>
-          <div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div>
+      <!-- Detail panel -->
+      <div id="calDetailCard">
+        <div class="card">
+          <div class="card-hd"><span class="card-icon">🔬</span><div class="card-title">Chi tiết calories</div></div>
+          <div class="card-body">
+            <div class="empty">
+              <div class="empty-icon">👆</div>
+              <div class="empty-title">Chọn sản phẩm</div>
+              <div class="empty-sub">Bấm vào tên SP ở bảng bên trái để xem chi tiết</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1778,8 +1797,9 @@ async function runAIResearch() {
 // ============================================================
 // CALORIES MODULE
 // ============================================================
-var CAL_STORAGE_KEY = 'pt_cal_nvl_v1'; // { nvlCode: kcalPerGram }
+var CAL_STORAGE_KEY = 'pt_cal_nvl_v1';
 
+// ── Storage: localStorage cache + Google Sheet ──
 function getCalData() {
   try { return JSON.parse(localStorage.getItem(CAL_STORAGE_KEY) || 'null'); } catch(e) { return null; }
 }
@@ -1790,10 +1810,41 @@ function clearCalData() {
   localStorage.removeItem(CAL_STORAGE_KEY);
 }
 
+// Lưu lên Google Sheet (action saveCalData trong GS)
+async function saveCalToSheet(data) {
+  try {
+    var payload = Object.keys(data).map(function(code) {
+      return code + ':' + data[code];
+    }).join(',');
+    await api({ action: 'saveCalData', calData: payload });
+    toast('✅ Đã lưu lên Google Sheet — dùng chung mọi thiết bị', 'ok');
+  } catch(e) {
+    toast('⚠️ Lưu local OK, lưu Sheet lỗi: ' + e.message, 'info');
+  }
+}
+
+// Đọc từ Google Sheet, cache về localStorage
+async function loadCalFromSheet() {
+  try {
+    var r = await api({ action: 'getCalData' });
+    if (r.data && Object.keys(r.data).length) {
+      saveCalData(r.data);
+      return r.data;
+    }
+  } catch(e) {}
+  return null;
+}
+
 // Khởi tạo trang Calories
 async function initCaloriesPage() {
   document.getElementById('calModeLabel').textContent = MODE_LABELS[S.mode];
   var calData = getCalData();
+  if (!calData) {
+    // Thử load từ Google Sheet
+    document.getElementById('calSetupStatus').innerHTML =
+      '<div class="loader"><div class="spin"></div>Đang tải dữ liệu dinh dưỡng từ Google Sheet...</div>';
+    calData = await loadCalFromSheet();
+  }
   if (calData) {
     showCalSetupDone(calData);
     await renderCalTable(calData);
@@ -1985,7 +2036,7 @@ function calLevelBadge(kcal) {
 }
 
 // Lưu dữ liệu từ bảng review
-function saveCalFromTable() {
+async function saveCalFromTable() {
   var inputs = document.querySelectorAll('#calNVLTable input[data-idx]');
   var calData = {};
   inputs.forEach(function(inp) {
@@ -1993,10 +2044,10 @@ function saveCalFromTable() {
     var item = _calAIItems[idx];
     if (item) calData[item.code] = parseFloat(inp.value) || 0;
   });
-  saveCalData(calData);
+  saveCalData(calData);            // localStorage ngay lập tức
   showCalSetupDone(calData);
   renderCalTable(calData);
-  toast('✅ Đã lưu dữ liệu dinh dưỡng '+Object.keys(calData).length+' NVL', 'ok');
+  await saveCalToSheet(calData);   // Google Sheet async
 }
 
 // Chỉnh sửa lại dữ liệu đã lưu
@@ -2100,6 +2151,7 @@ async function renderCalTable(calData) {
 }
 
 function renderCalRows(list) {
+  window._calFilteredResults = list; // lưu cho export
   if (!list.length) {
     document.getElementById('calBodyWrap').innerHTML =
       '<div class="empty" style="padding:30px"><div class="empty-icon">🔍</div><div class="empty-title">Không tìm thấy</div></div>';
@@ -2107,8 +2159,8 @@ function renderCalRows(list) {
   }
   var rows = list.map(function(p) {
     var badge = kcalBadge(p.kcal);
-    var warn  = p.missing.length ? '<span title="Thiếu: '+p.missing.slice(0,3).join(', ')+(p.missing.length>3?'...':'')+'" style="color:var(--gold);cursor:help;margin-left:4px">⚠️</span>' : '';
-    return '<tr>' +
+    var warn  = p.missing && p.missing.length ? '<span title="Thiếu cal: '+p.missing.slice(0,3).join(', ')+(p.missing.length>3?'...':'')+'" style="color:var(--gold);cursor:help;margin-left:4px">⚠️</span>' : '';
+    return '<tr style="cursor:pointer" onclick="showCalDetail(\''+p.code+'\')">' +
       '<td><span class="td-code">'+p.code+'</span></td>' +
       '<td><span class="td-code">'+p.iposCode+'</span></td>' +
       '<td style="font-weight:600">'+p.name+warn+'</td>' +
@@ -2117,6 +2169,7 @@ function renderCalRows(list) {
         (p.hasData ? p.kcal.toLocaleString('vi-VN') : '<span style="color:var(--gray)">—</span>') +
       '</td>' +
       '<td style="text-align:center">'+badge+'</td>' +
+      '<td><button class="btn btn-secondary btn-xs" onclick="event.stopPropagation();showCalDetail(\''+p.code+'\')">Chi tiết</button></td>' +
     '</tr>';
   }).join('');
 
@@ -2124,7 +2177,7 @@ function renderCalRows(list) {
     '<div class="table-wrap"><table>' +
     '<thead><tr>' +
       '<th>Mã SP</th><th>IPOS</th><th>Tên sản phẩm</th><th>Nhóm</th>' +
-      '<th style="text-align:right">kcal/ly</th><th style="text-align:center">Mức</th>' +
+      '<th style="text-align:right">kcal/ly</th><th style="text-align:center">Mức</th><th></th>' +
     '</tr></thead>' +
     '<tbody>'+rows+'</tbody></table></div>';
 }
@@ -2143,7 +2196,6 @@ function filterCalTable() {
   var grp   = document.getElementById('calGroupFilter').value;
   var lvl   = document.getElementById('calLevelFilter').value;
   var sort  = document.getElementById('calSortOrder').value;
-
   var filtered = list.filter(function(p) {
     var matchQ   = !q || p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q);
     var matchGrp = !grp || p.group === grp;
@@ -2154,18 +2206,152 @@ function filterCalTable() {
       else if (lvl === 'mid') matchLvl = k >= 150 && k < 300;
       else if (lvl === 'high')     matchLvl = k >= 300 && k < 450;
       else if (lvl === 'veryhigh') matchLvl = k >= 450;
-    } else if (lvl && !p.hasData) {
-      matchLvl = false;
-    }
+    } else if (lvl && !p.hasData) { matchLvl = false; }
     return matchQ && matchGrp && matchLvl;
   });
-
-  // Sort
   filtered.sort(function(a, b) {
     return sort === 'asc' ? a.kcal - b.kcal : b.kcal - a.kcal;
   });
-
   renderCalRows(filtered);
+}
+
+// ── Chi tiết calories 1 sản phẩm ──
+async function showCalDetail(spCode) {
+  var panel = document.getElementById('calDetailCard');
+  panel.innerHTML =
+    '<div class="card"><div class="card-hd"><span class="card-icon">🔬</span><div class="card-title">Chi tiết calories</div></div>' +
+    '<div class="card-body"><div class="loader"><div class="spin"></div>Đang tính...</div></div></div>';
+
+  try {
+    var calData = getCalData();
+    if (!calData) throw new Error('Chưa có dữ liệu calories');
+
+    var recRes = await api({ action: 'getRecipesByMode' });
+    var recipes = recRes.data || {};
+    var btpRes  = await api({ action: 'getBTPRecipes' });
+    var btpMap  = btpRes.data || {};
+
+    var recipe = recipes[spCode];
+    if (!recipe) throw new Error('Không tìm thấy công thức: ' + spCode);
+
+    var prod = (window._calResults || []).find(function(p){ return p.code === spCode; });
+    var totalKcal = 0;
+    var breakdown = [];
+
+    // Hàm đệ quy build breakdown
+    function buildBreakdown(ingCode, ingQty, ingName, ingUnit, depth) {
+      if (depth > 5) return;
+      var isBTP = ingCode && ingCode.indexOf('BTP') === 0;
+      if (isBTP) {
+        var btp = btpMap[ingCode];
+        if (!btp) return;
+        var bs = btp.batchSize || 1;
+        var btpKcal = 0;
+        var subItems = [];
+        btp.ingredients.forEach(function(bi) {
+          var rawQty = ingQty * (bs > 0 ? bi.qtyPerBatch / bs : 0);
+          var isSubBTP = bi.code && bi.code.indexOf('BTP') === 0;
+          if (isSubBTP) {
+            buildBreakdown(bi.code, rawQty, bi.name, bi.unit, depth + 1);
+          } else {
+            var kcal = calData[bi.code];
+            var subKcal = kcal !== undefined ? rawQty * kcal : 0;
+            btpKcal += subKcal;
+            subItems.push({ name: bi.name, qty: rawQty, unit: bi.unit, kcalPer: kcal || 0, subtotal: subKcal });
+          }
+        });
+        totalKcal += btpKcal;
+        breakdown.push({ code: ingCode, name: ingName, qty: ingQty, unit: ingUnit, isBTP: true, subtotal: btpKcal, subItems: subItems });
+      } else {
+        var kcal = calData[ingCode];
+        var sub  = kcal !== undefined ? ingQty * kcal : 0;
+        totalKcal += sub;
+        breakdown.push({ code: ingCode, name: ingName, qty: ingQty, unit: ingUnit, isBTP: false, kcalPer: kcal || 0, subtotal: sub, missing: kcal === undefined });
+      }
+    }
+
+    recipe.ingredients.forEach(function(ing) {
+      buildBreakdown(ing.code, ing.qty, ing.name, ing.unit, 0);
+    });
+
+    var maxSub = Math.max.apply(null, breakdown.map(function(b){ return b.subtotal; }).concat([1]));
+
+    var rows = breakdown.map(function(b) {
+      var pct   = maxSub > 0 ? b.subtotal / maxSub * 100 : 0;
+      var badge = b.isBTP ? '<span class="badge badge-btp" style="margin-left:4px;font-size:9px">BTP</span>' : '';
+      var miss  = b.missing ? '<span style="color:var(--gold);font-size:10px"> (thiếu data)</span>' : '';
+      var subHtml = '';
+      if (b.isBTP && b.subItems && b.subItems.length) {
+        subHtml = '<div style="margin-top:5px;padding-left:12px;border-left:2px solid var(--border)">' +
+          b.subItems.map(function(s) {
+            return '<div style="font-size:11px;color:var(--gray);display:flex;justify-content:space-between;padding:2px 0">' +
+              '<span>↳ '+s.name+' ('+s.qty.toFixed(1)+' '+s.unit+')</span>' +
+              '<span style="font-weight:600;color:var(--brown-m)">'+Math.round(s.subtotal)+' kcal</span>' +
+            '</div>';
+          }).join('') + '</div>';
+      }
+      return '<div style="margin-bottom:14px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between">' +
+          '<div><div style="font-size:12px;font-weight:600">'+b.name+badge+miss+'</div>' +
+          '<div class="text-xs text-muted">'+b.qty+' '+b.unit+(b.kcalPer?' · '+b.kcalPer+' kcal/'+b.unit:'')+'</div></div>' +
+          '<div style="font-weight:800;color:var(--brown)">'+Math.round(b.subtotal)+' kcal</div>' +
+        '</div>' +
+        subHtml +
+        '<div class="bar-wrap" style="margin-top:4px"><div class="bar-fill" style="width:'+pct+'%"></div></div>' +
+      '</div>';
+    }).join('');
+
+    var lvlBadge = kcalBadge(Math.round(totalKcal));
+    panel.innerHTML =
+      '<div class="card">' +
+        '<div class="card-hd"><span class="card-icon">🔬</span>' +
+          '<div><div class="card-title">'+(prod ? prod.name : spCode)+'</div>' +
+          '<div class="card-sub">'+spCode+' · '+breakdown.length+' thành phần</div></div>' +
+        '</div>' +
+        '<div class="card-body">' +
+          '<div style="background:linear-gradient(135deg,var(--blue-d),var(--blue-m));border-radius:10px;padding:14px;color:white;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between">' +
+            '<div><div style="font-size:10px;color:rgba(255,255,255,.6);font-weight:700;text-transform:uppercase;letter-spacing:1px">TỔNG CALORIES / LY</div>' +
+            '<div style="font-size:28px;font-weight:800;margin-top:4px">'+Math.round(totalKcal)+' <span style="font-size:14px;font-weight:400">kcal</span></div></div>' +
+            '<div>'+lvlBadge+'</div>' +
+          '</div>' +
+          '<div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">CHI TIẾT ('+breakdown.length+' thành phần)</div>' +
+          rows +
+        '</div>' +
+      '</div>';
+  } catch(e) {
+    panel.innerHTML = '<div class="card"><div class="card-body"><div class="alert alert-err">❌ '+e.message+'</div></div></div>';
+  }
+}
+
+// ── Export Excel ──
+function exportCalExcel() {
+  var list = window._calFilteredResults || window._calResults || [];
+  if (!list.length) { toast('Không có dữ liệu để xuất', 'err'); return; }
+  var date = new Date().toISOString().slice(0,10);
+  var rows = [['#','Mã SP','IPOS Code','Tên sản phẩm','Nhóm','Calories (kcal/ly)','Mức']];
+  list.forEach(function(p, i) {
+    var lvl = !p.hasData ? '—' : p.kcal < 150 ? 'Thấp' : p.kcal < 300 ? 'Vừa' : p.kcal < 450 ? 'Cao' : 'Rất cao';
+    rows.push([i+1, p.code, p.iposCode, p.name, p.group||'', p.hasData ? p.kcal : '', lvl]);
+  });
+  rows.push(['','','','','TRUNG BÌNH', Math.round(list.filter(function(p){return p.hasData;}).reduce(function(s,p){return s+p.kcal;},0) / (list.filter(function(p){return p.hasData;}).length||1)), '']);
+  downloadCSV(rows, 'PhucTea_Calories_'+date+'.csv');
+  toast('Đã xuất Excel/CSV', 'ok');
+}
+
+// ── Export PDF ──
+function exportCalPDF() {
+  var list = window._calFilteredResults || window._calResults || [];
+  if (!list.length) { toast('Không có dữ liệu để xuất', 'err'); return; }
+  var avg = Math.round(list.filter(function(p){return p.hasData;}).reduce(function(s,p){return s+p.kcal;},0) / (list.filter(function(p){return p.hasData;}).length||1));
+  var headerCols = ['#','Tên sản phẩm','Mã SP','Nhóm','kcal/ly','Mức'];
+  var bodyRows = list.map(function(p,i){
+    var lvl = !p.hasData ? '—' : p.kcal < 150 ? '🟢 Thấp' : p.kcal < 300 ? '🟡 Vừa' : p.kcal < 450 ? '🟠 Cao' : '🔴 Rất cao';
+    return [i+1, p.name, p.code, p.group||'—', p.hasData ? p.kcal.toLocaleString('vi-VN')+' kcal' : '—', lvl];
+  });
+  var subtitle = list.length + ' sản phẩm · Mode: ' + MODE_LABELS[S.mode];
+  var html = buildPrintHTML('DANH SÁCH CALORIES SẢN PHẨM', subtitle, headerCols, bodyRows, 'TRUNG BÌNH', avg+' kcal/ly', S.mode);
+  printPDF(html, 'PhucTea_Calories.pdf');
+  toast('Đã mở cửa sổ in — chọn "Save as PDF"', 'info');
 }
 
 // ============================================================
@@ -2274,6 +2460,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (saved) showCalSetupDone(saved);
     else document.getElementById('calSetupStatus').innerHTML = '';
   });
+  document.getElementById('exportCalExcelBtn').addEventListener('click', exportCalExcel);
+  document.getElementById('exportCalPDFBtn').addEventListener('click', exportCalPDF);
   document.getElementById('calSearch').addEventListener('input', filterCalTable);
   document.getElementById('calGroupFilter').addEventListener('change', filterCalTable);
   document.getElementById('calLevelFilter').addEventListener('change', filterCalTable);
