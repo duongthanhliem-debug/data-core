@@ -2044,9 +2044,18 @@ async function saveCalFromTable() {
 }
 
 // Chỉnh sửa lại dữ liệu đã lưu
-function editCalData() {
+async function editCalData() {
   var calData = getCalData();
   if (!calData) return;
+  // Đảm bảo đã có danh sách NVL để lấy tên — nếu chưa có thì tải lại
+  if (!S.nvl || !S.nvl.length) {
+    document.getElementById('calSetupStatus').innerHTML =
+      '<div class="loader"><div class="spin"></div>Đang tải danh sách NVL...</div>';
+    try {
+      var r = await api({ action: 'getMaterials' });
+      if (r.data) S.nvl = r.data;
+    } catch(e) {}
+  }
   // Build items từ calData + S.nvl để có đủ tên
   var nvlMap = {};
   (S.nvl || []).forEach(function(n){ nvlMap[n.code] = n; });
