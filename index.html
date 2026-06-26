@@ -253,6 +253,7 @@ tr:hover td{background:var(--blue-xl)}
 /* ── MOBILE ── */
 .hamburger{display:none;background:transparent;color:var(--blue);font-size:20px;padding:4px 8px;margin-right:8px;border:none}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,26,102,.55);z-index:99}
+.cal-detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,26,102,.55);z-index:199}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -263,6 +264,15 @@ tr:hover td{background:var(--blue-xl)}
   .form-grid-2{grid-template-columns:1fr}
   .page{padding:14px}
   .topbar{padding:0 10px;overflow:hidden}
+  .cal-detail-overlay.open{display:block}
+  #calDetailCard{
+    position:fixed;left:12px;right:12px;top:8%;bottom:8%;
+    z-index:200;display:none;flex-direction:column;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);
+  }
+  #calDetailCard.open{display:flex}
+  #calDetailCard .card-body{flex:1;overflow-y:auto}
+  #calDetailCloseBtn{display:inline-flex}
   .topbar-sub{display:none}
   .toggle-row{gap:10px}
   body{overflow-x:hidden}
@@ -666,12 +676,15 @@ tr:hover td{background:var(--blue-xl)}
         </div>
       </div>
 
-      <!-- CỘT PHẢI: chi tiết SP đang chọn (sticky) -->
+      <!-- CỘT PHẢI: chi tiết SP đang chọn (sticky trên desktop, modal trên mobile) -->
       <div style="position:sticky;top:calc(var(--header-h) + 12px)">
         <div class="card" id="calDetailCard">
-          <div class="card-hd">
-            <span class="card-icon">🔬</span>
-            <div><div class="card-title">Chi tiết Calories</div></div>
+          <div class="card-hd flex justify-between items-center">
+            <div class="flex items-center" style="gap:10px">
+              <span class="card-icon">🔬</span>
+              <div><div class="card-title">Chi tiết Calories</div></div>
+            </div>
+            <button id="calDetailCloseBtn" class="btn btn-secondary btn-sm" style="display:none" onclick="closeCalDetailMobile()">✕</button>
           </div>
           <div class="card-body" id="calDetailContent">
             <div class="empty">
@@ -684,6 +697,8 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
   </div>
+
+<div id="calDetailOverlay" class="cal-detail-overlay" onclick="closeCalDetailMobile()"></div>
 
 </main>
 
@@ -964,6 +979,24 @@ async function api(params) {
   });
   qs.set('mode', S.mode);
   var res = await fetch(S.url + '?' + qs.toString(), { method: 'GET', redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  var text = await res.text();
+  try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
+}
+
+// Dùng cho các action ghi data LỚN (vd saveCalData) — gửi qua POST body
+// để tránh vượt giới hạn độ dài URL khi GET (gây lưu thất bại âm thầm với data nhiều NVL).
+async function apiPost(params) {
+  if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
+  var body = new URLSearchParams();
+  Object.keys(params).forEach(function(k) {
+    var v = params[k];
+    if (v === undefined || v === null) return;
+    if (typeof v === 'object') body.set(k, JSON.stringify(v));
+    else body.set(k, String(v));
+  });
+  body.set('mode', S.mode);
+  var res = await fetch(S.url, { method: 'POST', redirect: 'follow', body: body });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   var text = await res.text();
   try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
@@ -1813,14 +1846,15 @@ function clearCalData() {
   localStorage.removeItem(CAL_STORAGE_KEY);
 }
 
-// Lưu lên Google Sheet (action saveCalData trong GS)
+// Lưu lên Google Sheet (action saveCalData trong GS) — dùng POST để tránh lỗi URL quá dài
 async function saveCalToSheet(data) {
   try {
     var payload = Object.keys(data).map(function(code) {
       return code + ':' + data[code];
     }).join(',');
-    await api({ action: 'saveCalData', calData: payload });
-    toast('✅ Đã lưu lên Google Sheet — dùng chung mọi thiết bị', 'ok');
+    var r = await apiPost({ action: 'saveCalData', calData: payload });
+    if (!r || r.success === false) throw new Error((r && r.message) || 'Lưu thất bại');
+    toast('✅ Đã lưu lên Google Sheet ('+r.count+' NVL) — dùng chung mọi thiết bị', 'ok');
   } catch(e) {
     toast('⚠️ Lưu local OK, lưu Sheet lỗi: ' + e.message, 'info');
   }
@@ -2206,6 +2240,16 @@ function selectCalRow(code) {
   var newRow = document.getElementById('calrow-'+code);
   if (newRow) { newRow.style.background='var(--blue-soft)'; newRow.style.borderLeft='3px solid var(--blue)'; }
   showCalDetail(code);
+  // Trên mobile: mở Chi tiết Calories dạng popup thay vì phải kéo xuống
+  if (window.innerWidth <= 768) {
+    document.getElementById('calDetailCard').classList.add('open');
+    document.getElementById('calDetailOverlay').classList.add('open');
+  }
+}
+
+function closeCalDetailMobile() {
+  document.getElementById('calDetailCard').classList.remove('open');
+  document.getElementById('calDetailOverlay').classList.remove('open');
 }
 
 function kcalBadge(kcal) {
