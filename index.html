@@ -253,7 +253,6 @@ tr:hover td{background:var(--blue-xl)}
 /* ── MOBILE ── */
 .hamburger{display:none;background:transparent;color:var(--blue);font-size:20px;padding:4px 8px;margin-right:8px;border:none}
 .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,26,102,.55);z-index:99}
-.cal-detail-overlay{display:none;position:fixed;inset:0;background:rgba(0,26,102,.55);z-index:199}
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -264,16 +263,6 @@ tr:hover td{background:var(--blue-xl)}
   .form-grid-2{grid-template-columns:1fr}
   .page{padding:14px}
   .topbar{padding:0 10px;overflow:hidden}
-  .cal-detail-overlay.open{display:block}
-  #calDetailCard{
-    position:fixed;left:12px;right:12px;top:8%;bottom:8%;
-    z-index:200;display:none;flex-direction:column;
-    background:#fff!important;opacity:1!important;
-    box-shadow:0 20px 50px rgba(0,0,0,.35);
-  }
-  #calDetailCard.open{display:flex}
-  #calDetailCard .card-body{flex:1;overflow-y:auto}
-  #calDetailCloseBtn{display:inline-flex}
   .topbar-sub{display:none}
   .toggle-row{gap:10px}
   body{overflow-x:hidden}
@@ -282,6 +271,8 @@ tr:hover td{background:var(--blue-xl)}
   .mode-badge{font-size:10px;padding:3px 6px}
   #syncBtn{font-size:11px;padding:4px 7px}
   #syncBtn .sync-label{display:none}
+  /* Panel chi tiết calories full-width trên mobile */
+  #calDetailPanel{width:100vw!important;max-width:100vw!important}
 }
 </style>
 </head>
@@ -638,68 +629,53 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
 
-    <!-- Bước 2: Layout 2 cột cố định như Cost Engine -->
-    <div class="g2" style="align-items:start">
-      <!-- CỘT TRÁI: danh sách SP -->
-      <div class="card" id="calResultCard">
-        <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
-          <div>
-            <div class="card-title">🔥 Calories từng sản phẩm</div>
-            <div class="card-sub" id="calProdCount"></div>
-          </div>
-          <div class="flex gap-2" style="flex-wrap:wrap">
-            <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm..." style="width:120px"></div>
-            <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:120px">
-              <option value="">Tất cả nhóm</option>
-            </select>
-            <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:120px">
-              <option value="">Tất cả mức</option>
-              <option value="low">🟢 Thấp</option>
-              <option value="mid">🟡 Vừa</option>
-              <option value="high">🟠 Cao</option>
-              <option value="veryhigh">🔴 Rất cao</option>
-            </select>
-            <select class="form-input form-select btn-sm" id="calSortOrder" style="width:120px">
-              <option value="desc">↓ Cao → Thấp</option>
-              <option value="asc">↑ Thấp → Cao</option>
-            </select>
-            <button class="btn btn-secondary btn-sm" id="exportCalExcelBtn">⬇</button>
-            <button class="btn btn-secondary btn-sm" id="exportCalPDFBtn">📄</button>
-            <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺</button>
-          </div>
+    <!-- Bước 2: Bảng calories 1 cột + slide-in panel chi tiết -->
+    <div class="card" id="calResultCard">
+      <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="card-title">🔥 Calories từng sản phẩm</div>
+          <div class="card-sub" id="calProdCount"></div>
         </div>
-        <div id="calBodyWrap">
-          <div class="empty" style="padding:40px">
-            <div class="empty-icon">🔥</div>
-            <div class="empty-title">Chưa có dữ liệu calories</div>
-            <div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div>
-          </div>
+        <div class="flex gap-2" style="flex-wrap:wrap">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm..." style="width:130px"></div>
+          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:120px">
+            <option value="">Tất cả nhóm</option>
+          </select>
+          <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:120px">
+            <option value="">Tất cả mức</option>
+            <option value="low">🟢 Thấp</option>
+            <option value="mid">🟡 Vừa</option>
+            <option value="high">🟠 Cao</option>
+            <option value="veryhigh">🔴 Rất cao</option>
+          </select>
+          <select class="form-input form-select btn-sm" id="calSortOrder" style="width:140px">
+            <option value="desc">↓ Cao → Thấp</option>
+            <option value="asc">↑ Thấp → Cao</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="exportCalExcelBtn" title="Xuất Excel">⬇ Excel</button>
+          <button class="btn btn-secondary btn-sm" id="exportCalPDFBtn" title="Xuất PDF">📄 PDF</button>
+          <button class="btn btn-secondary btn-sm" id="reloadCalBtn" title="Tính lại">↺</button>
         </div>
       </div>
-
-      <!-- CỘT PHẢI: chi tiết SP đang chọn (sticky trên desktop, modal trên mobile) -->
-      <div style="position:sticky;top:calc(var(--header-h) + 12px)">
-        <div class="card" id="calDetailCard">
-          <div class="card-hd flex justify-between items-center">
-            <div class="flex items-center" style="gap:10px">
-              <span class="card-icon">🔬</span>
-              <div><div class="card-title">Chi tiết Calories</div></div>
-            </div>
-            <button id="calDetailCloseBtn" class="btn btn-secondary btn-sm" style="display:none" onclick="closeCalDetailMobile()">✕</button>
-          </div>
-          <div class="card-body" id="calDetailContent">
-            <div class="empty">
-              <div class="empty-icon">👆</div>
-              <div class="empty-title">Chọn sản phẩm</div>
-              <div class="empty-sub">Bấm vào dòng bất kỳ bên trái để xem chi tiết calories</div>
-            </div>
-          </div>
+      <div id="calBodyWrap">
+        <div class="empty" style="padding:40px">
+          <div class="empty-icon">🔥</div>
+          <div class="empty-title">Chưa có dữ liệu calories</div>
+          <div class="empty-sub">Bấm "AI điền Calories NVL" ở bước 1 để bắt đầu</div>
         </div>
       </div>
     </div>
-  </div>
 
-<div id="calDetailOverlay" class="cal-detail-overlay" onclick="closeCalDetailMobile()"></div>
+    <!-- Slide-in panel chi tiết — overlay toàn màn hình mobile, panel phải desktop -->
+    <div id="calDetailOverlay" onclick="closeCalDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,26,102,.4);z-index:300"></div>
+    <div id="calDetailPanel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100vw;background:var(--white);box-shadow:-4px 0 32px rgba(0,51,153,.18);z-index:301;overflow-y:auto;flex-direction:column">
+      <div style="position:sticky;top:0;background:var(--white);border-bottom:1.5px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:1;flex-shrink:0">
+        <div style="font-size:14px;font-weight:700;color:var(--blue)">🔬 Chi tiết Calories</div>
+        <button onclick="closeCalDetail()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);line-height:1;padding:2px 6px">×</button>
+      </div>
+      <div id="calDetailContent" style="padding:16px;flex:1"></div>
+    </div>
+  </div>
 
 </main>
 
@@ -985,17 +961,15 @@ async function api(params) {
   try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
 }
 
-// Dùng cho các action ghi data LỚN (vd saveCalData) — gửi JSON qua POST body (text/plain
-// để tránh CORS preflight), đọc trực tiếp ở GAS qua e.postData.contents — đáng tin cậy hơn
-// URLSearchParams khi đi qua các bước redirect nội bộ của Apps Script.
+// POST riêng cho data lớn (calData hàng trăm NVL vượt giới hạn URL GET)
 async function apiPost(params) {
   if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
-  var payload = Object.assign({}, params, { mode: S.mode });
+  params.mode = S.mode;
   var res = await fetch(S.url, {
     method: 'POST',
     redirect: 'follow',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: JSON.stringify(payload)
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params).toString()
   });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   var text = await res.text();
@@ -1846,15 +1820,19 @@ function clearCalData() {
   localStorage.removeItem(CAL_STORAGE_KEY);
 }
 
-// Lưu lên Google Sheet (action saveCalData trong GS) — dùng POST để tránh lỗi URL quá dài
+// Lưu lên Google Sheet (action saveCalData trong GS)
 async function saveCalToSheet(data) {
   try {
     var payload = Object.keys(data).map(function(code) {
       return code + ':' + data[code];
     }).join(',');
+    // Dùng POST để tránh giới hạn URL GET (~2000 ký tự)
     var r = await apiPost({ action: 'saveCalData', calData: payload });
-    if (!r || r.success === false) throw new Error((r && r.message) || 'Lưu thất bại');
-    toast('✅ Đã lưu lên Google Sheet ('+r.count+' NVL) — dùng chung mọi thiết bị', 'ok');
+    if (r && r.success) {
+      toast('✅ Đã lưu ' + (r.count||'') + ' NVL lên Google Sheet — dùng chung mọi thiết bị', 'ok');
+    } else {
+      throw new Error(r && r.message ? r.message : 'Unknown error');
+    }
   } catch(e) {
     toast('⚠️ Lưu local OK, lưu Sheet lỗi: ' + e.message, 'info');
   }
@@ -2205,12 +2183,11 @@ function renderCalRows(list) {
     return;
   }
   var rows = list.map(function(p) {
-    var badge    = kcalBadge(p.kcal);
-    var warn     = p.missing && p.missing.length
+    var badge = kcalBadge(p.kcal);
+    var warn  = p.missing && p.missing.length
       ? '<span title="Thiếu cal: '+p.missing.slice(0,3).join(', ')+(p.missing.length>3?'...':'')+'" style="color:var(--gold);cursor:help;margin-left:4px">⚠️</span>'
       : '';
-    var isActive = p.code === _calSelectedCode;
-    return '<tr id="calrow-'+p.code+'" onclick="selectCalRow(\''+p.code+'\')" style="cursor:pointer'+(isActive?';background:var(--blue-soft);border-left:3px solid var(--blue)':'')+'">' +
+    return '<tr id="calrow-'+p.code+'">' +
       '<td><span class="td-code">'+p.code+'</span></td>' +
       '<td style="font-weight:600">'+p.name+warn+'</td>' +
       '<td><span class="badge badge-gray">'+(p.group||'—')+'</span></td>' +
@@ -2218,6 +2195,7 @@ function renderCalRows(list) {
         (p.hasData ? p.kcal.toLocaleString('vi-VN')+' kcal' : '<span style="color:var(--gray)">—</span>') +
       '</td>' +
       '<td style="text-align:center">'+badge+'</td>' +
+      '<td><button class="btn btn-secondary btn-xs" onclick="openCalDetail(\''+p.code+'\')">Chi tiết</button></td>' +
     '</tr>';
   }).join('');
 
@@ -2225,31 +2203,9 @@ function renderCalRows(list) {
     '<div class="table-wrap"><table>' +
     '<thead><tr>' +
       '<th>Mã SP</th><th>Tên sản phẩm</th><th>Nhóm</th>' +
-      '<th style="text-align:right">Calories</th><th style="text-align:center">Mức</th>' +
+      '<th style="text-align:right">Calories</th><th style="text-align:center">Mức</th><th></th>' +
     '</tr></thead>' +
     '<tbody>'+rows+'</tbody></table></div>';
-}
-
-function selectCalRow(code) {
-  // Bỏ highlight cũ
-  if (_calSelectedCode) {
-    var oldRow = document.getElementById('calrow-'+_calSelectedCode);
-    if (oldRow) { oldRow.style.background=''; oldRow.style.borderLeft=''; }
-  }
-  _calSelectedCode = code;
-  var newRow = document.getElementById('calrow-'+code);
-  if (newRow) { newRow.style.background='var(--blue-soft)'; newRow.style.borderLeft='3px solid var(--blue)'; }
-  showCalDetail(code);
-  // Trên mobile: mở Chi tiết Calories dạng popup thay vì phải kéo xuống
-  if (window.innerWidth <= 768) {
-    document.getElementById('calDetailCard').classList.add('open');
-    document.getElementById('calDetailOverlay').classList.add('open');
-  }
-}
-
-function closeCalDetailMobile() {
-  document.getElementById('calDetailCard').classList.remove('open');
-  document.getElementById('calDetailOverlay').classList.remove('open');
 }
 
 function kcalBadge(kcal) {
@@ -2285,7 +2241,18 @@ function filterCalTable() {
   renderCalRows(filtered);
 }
 
-// ── Chi tiết calories 1 sản phẩm — render vào panel phải cố định ──
+// ── Slide-in panel ──
+function openCalDetail(spCode) {
+  document.getElementById('calDetailOverlay').style.display = 'block';
+  document.getElementById('calDetailPanel').style.display = 'flex';
+  showCalDetail(spCode);
+}
+function closeCalDetail() {
+  document.getElementById('calDetailOverlay').style.display = 'none';
+  document.getElementById('calDetailPanel').style.display = 'none';
+}
+
+// ── Chi tiết calories 1 sản phẩm ──
 async function showCalDetail(spCode) {
   document.getElementById('calDetailContent').innerHTML =
     '<div class="loader" style="padding:40px 0"><div class="spin"></div>Đang tính...</div>';
