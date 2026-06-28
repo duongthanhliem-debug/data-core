@@ -1821,46 +1821,60 @@ function clearCalData() {
 }
 
 // Lưu lên Google Sheet (action saveCalData trong GS)
+// ── Lưu lên Google Sheet: GET chunked (50 NVL/request) ──
+// POST bị Apps Script redirect → đổi thành GET, mất body → dùng GET chunk thay thế
 async function saveCalToSheet(data) {
   try {
-    var payload = Object.keys(data).map(function(code) {
-      return code + ':' + data[code];
-    }).join(',');
-    // Dùng POST để tránh giới hạn URL GET (~2000 ký tự)
-    var r = await apiPost({ action: 'saveCalData', calData: payload });
-    if (r && r.success) {
-      toast('✅ Đã lưu ' + (r.count||'') + ' NVL lên Google Sheet — dùng chung mọi thiết bị', 'ok');
-    } else {
-      throw new Error(r && r.message ? r.message : 'Unknown error');
+    var entries = Object.keys(data).map(function(code) {
+      return code + ':' + (data[code] || 0);
+    });
+    if (!entries.length) return;
+
+    var CHUNK = 50; // ~50 × 15 ký tự = ~750 ký tự/request, an toàn
+    for (var i = 0; i < entries.length; i += CHUNK) {
+      var chunk    = entries.slice(i, i + CHUNK);
+      var payload  = chunk.join(',');
+      var isFirst  = (i === 0) ? '0' : '1'; // 0=ghi mới (xóa cũ), 1=append
+      await api({ action: 'saveCalData', calData: payload, append: isFirst });
     }
+    toast('✅ Đã lưu ' + entries.length + ' NVL lên Google Sheet — dùng chung mọi thiết bị', 'ok');
   } catch(e) {
-    toast('⚠️ Lưu local OK, lưu Sheet lỗi: ' + e.message, 'info');
+    toast('⚠️ Lưu local OK nhưng lưu Sheet lỗi: ' + e.message, 'info');
+    console.error('saveCalToSheet error:', e);
   }
 }
 
-// Đọc từ Google Sheet, cache về localStorage
+// ── Đọc từ Google Sheet → cache localStorage ──
 async function loadCalFromSheet() {
   try {
     var r = await api({ action: 'getCalData' });
-    if (r.data && Object.keys(r.data).length) {
-      saveCalData(r.data);
+    if (r && r.data && Object.keys(r.data).length > 0) {
+      saveCalData(r.data); // cache về localStorage
       return r.data;
     }
-  } catch(e) {}
+  } catch(e) {
+    console.warn('loadCalFromSheet error:', e);
+  }
   return null;
 }
 
-// Khởi tạo trang Calories
+// ── Khởi tạo trang Calories ──
+// Luôn fetch từ Sheet trước → dùng làm source of truth
+// localStorage chỉ là fallback khi offline/sheet trống
 async function initCaloriesPage() {
   document.getElementById('calModeLabel').textContent = MODE_LABELS[S.mode];
-  var calData = getCalData();
-  if (!calData) {
-    // Thử load từ Google Sheet
-    document.getElementById('calSetupStatus').innerHTML =
-      '<div class="loader"><div class="spin"></div>Đang tải dữ liệu dinh dưỡng từ Google Sheet...</div>';
-    calData = await loadCalFromSheet();
-  }
-  if (calData) {
+
+  // Hiện loading
+  document.getElementById('calSetupStatus').innerHTML =
+    '<div class="loader"><div class="spin"></div>Đang đồng bộ dữ liệu dinh dưỡng...</div>';
+
+  // Luôn fetch sheet trước (source of truth)
+  var sheetData = await loadCalFromSheet();
+
+  // Nếu sheet có data → dùng sheet (và đã cache về localStorage rồi)
+  var calData = sheetData || getCalData();
+
+  if (calData && Object.keys(calData).length > 0) {
     showCalSetupDone(calData);
     await renderCalTable(calData);
   } else {
