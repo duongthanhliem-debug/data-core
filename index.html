@@ -271,8 +271,6 @@ tr:hover td{background:var(--blue-xl)}
   .mode-badge{font-size:10px;padding:3px 6px}
   #syncBtn{font-size:11px;padding:4px 7px}
   #syncBtn .sync-label{display:none}
-  /* Panel chi tiết calories full-width trên mobile */
-  #calDetailPanel{width:100vw!important;max-width:100vw!important}
 }
 </style>
 </head>
@@ -567,6 +565,7 @@ tr:hover td{background:var(--blue-xl)}
         <div class="card-body">
           <div class="form-group"><label class="form-label">Web App URL</label><input type="url" class="form-input" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
           <button class="btn btn-primary btn-sm" id="testConnBtn">🔗 Kiểm tra kết nối</button>
+          <button class="btn btn-secondary btn-sm" id="testCalSaveBtn" style="margin-left:8px">🧪 Test lưu CalNVL</button>
           <div id="connTest" style="margin-top:10px"></div>
         </div>
       </div>
@@ -629,7 +628,7 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
 
-    <!-- Bước 2: Bảng calories 1 cột + slide-in panel chi tiết -->
+    <!-- Bước 2: Bảng calories sản phẩm — layout giống trang Sản phẩm -->
     <div class="card" id="calResultCard">
       <div class="card-hd flex justify-between items-center" style="flex-wrap:wrap;gap:8px">
         <div>
@@ -637,24 +636,24 @@ tr:hover td{background:var(--blue-xl)}
           <div class="card-sub" id="calProdCount"></div>
         </div>
         <div class="flex gap-2" style="flex-wrap:wrap">
-          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm..." style="width:130px"></div>
-          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:120px">
+          <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" class="form-input" id="calSearch" placeholder="Tìm..." style="width:140px"></div>
+          <select class="form-input form-select btn-sm" id="calGroupFilter" style="width:130px">
             <option value="">Tất cả nhóm</option>
           </select>
-          <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:120px">
+          <select class="form-input form-select btn-sm" id="calLevelFilter" style="width:130px">
             <option value="">Tất cả mức</option>
-            <option value="low">🟢 Thấp</option>
-            <option value="mid">🟡 Vừa</option>
-            <option value="high">🟠 Cao</option>
-            <option value="veryhigh">🔴 Rất cao</option>
+            <option value="low">🟢 Thấp &lt;150</option>
+            <option value="mid">🟡 Vừa 150-300</option>
+            <option value="high">🟠 Cao 300-450</option>
+            <option value="veryhigh">🔴 Rất cao &gt;450</option>
           </select>
-          <select class="form-input form-select btn-sm" id="calSortOrder" style="width:140px">
+          <select class="form-input form-select btn-sm" id="calSortOrder" style="width:150px">
             <option value="desc">↓ Cao → Thấp</option>
             <option value="asc">↑ Thấp → Cao</option>
           </select>
-          <button class="btn btn-secondary btn-sm" id="exportCalExcelBtn" title="Xuất Excel">⬇ Excel</button>
-          <button class="btn btn-secondary btn-sm" id="exportCalPDFBtn" title="Xuất PDF">📄 PDF</button>
-          <button class="btn btn-secondary btn-sm" id="reloadCalBtn" title="Tính lại">↺</button>
+          <button class="btn btn-secondary btn-sm" id="exportCalExcelBtn">⬇ Excel</button>
+          <button class="btn btn-secondary btn-sm" id="exportCalPDFBtn">📄 PDF</button>
+          <button class="btn btn-secondary btn-sm" id="reloadCalBtn">↺</button>
         </div>
       </div>
       <div id="calBodyWrap">
@@ -666,14 +665,14 @@ tr:hover td{background:var(--blue-xl)}
       </div>
     </div>
 
-    <!-- Slide-in panel chi tiết — overlay toàn màn hình mobile, panel phải desktop -->
-    <div id="calDetailOverlay" onclick="closeCalDetail()" style="display:none;position:fixed;inset:0;background:rgba(0,26,102,.4);z-index:300"></div>
-    <div id="calDetailPanel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:440px;max-width:100vw;background:var(--white);box-shadow:-4px 0 32px rgba(0,51,153,.18);z-index:301;overflow-y:auto;flex-direction:column">
-      <div style="position:sticky;top:0;background:var(--white);border-bottom:1.5px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;z-index:1;flex-shrink:0">
-        <div style="font-size:14px;font-weight:700;color:var(--blue)">🔬 Chi tiết Calories</div>
-        <button onclick="closeCalDetail()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--gray);line-height:1;padding:2px 6px">×</button>
+    <!-- Detail panel — slide in từ phải, overlay -->
+    <div id="calDetailOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,26,102,.35);z-index:300" onclick="closeCalDetail()"></div>
+    <div id="calDetailPanel" style="display:none;position:fixed;top:0;right:0;bottom:0;width:420px;max-width:95vw;background:var(--white);box-shadow:-4px 0 32px rgba(0,51,153,.15);z-index:301;overflow-y:auto;transition:transform .25s ease">
+      <div style="position:sticky;top:0;background:var(--white);border-bottom:1.5px solid var(--border);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;z-index:1">
+        <div style="font-size:14px;font-weight:700;color:var(--brown)">🔬 Chi tiết Calories</div>
+        <button onclick="closeCalDetail()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--gray);line-height:1">×</button>
       </div>
-      <div id="calDetailContent" style="padding:16px;flex:1"></div>
+      <div id="calDetailContent" style="padding:16px"></div>
     </div>
   </div>
 
@@ -956,21 +955,6 @@ async function api(params) {
   });
   qs.set('mode', S.mode);
   var res = await fetch(S.url + '?' + qs.toString(), { method: 'GET', redirect: 'follow' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  var text = await res.text();
-  try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
-}
-
-// POST riêng cho data lớn (calData hàng trăm NVL vượt giới hạn URL GET)
-async function apiPost(params) {
-  if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
-  params.mode = S.mode;
-  var res = await fetch(S.url, {
-    method: 'POST',
-    redirect: 'follow',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams(params).toString()
-  });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   var text = await res.text();
   try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
@@ -1821,58 +1805,50 @@ function clearCalData() {
 }
 
 // Lưu lên Google Sheet (action saveCalData trong GS)
-// ── Lưu lên Google Sheet: GET chunked (50 NVL/request) ──
-// POST bị Apps Script redirect → đổi thành GET, mất body → dùng GET chunk thay thế
 async function saveCalToSheet(data) {
+  var entries = Object.keys(data);
+  if (!entries.length) { toast('Không có dữ liệu để lưu', 'err'); return; }
   try {
-    var entries = Object.keys(data).map(function(code) {
-      return code + ':' + (data[code] || 0);
-    });
-    if (!entries.length) return;
-
-    var CHUNK = 50; // ~50 × 15 ký tự = ~750 ký tự/request, an toàn
+    var CHUNK = 40; // ~40 × ~18 ký tự = ~720 ký tự/request, an toàn cho GET
     for (var i = 0; i < entries.length; i += CHUNK) {
-      var chunk    = entries.slice(i, i + CHUNK);
-      var payload  = chunk.join(',');
-      var isFirst  = (i === 0) ? '0' : '1'; // 0=ghi mới (xóa cũ), 1=append
-      await api({ action: 'saveCalData', calData: payload, append: isFirst });
+      var chunk   = entries.slice(i, i + CHUNK);
+      var payload = chunk.map(function(code){ return code + ':' + (data[code] || 0); }).join(',');
+      var append  = (i === 0) ? '0' : '1'; // '0'=xóa cũ+ghi mới, '1'=append
+      var r = await api({ action: 'saveCalData', calData: payload, append: append });
+      // Validate response — GS cũ trả { success:false, message:"Unknown action" }
+      if (!r || r.success === false) {
+        throw new Error(r && r.message ? r.message : 'GS không nhận được action saveCalData — kiểm tra đã deploy GS mới chưa');
+      }
     }
     toast('✅ Đã lưu ' + entries.length + ' NVL lên Google Sheet — dùng chung mọi thiết bị', 'ok');
   } catch(e) {
-    toast('⚠️ Lưu local OK nhưng lưu Sheet lỗi: ' + e.message, 'info');
-    console.error('saveCalToSheet error:', e);
+    // Hiện lỗi thật để debug
+    toast('❌ Lưu Sheet thất bại: ' + e.message, 'err');
+    console.error('[CalSave]', e);
   }
 }
 
-// ── Đọc từ Google Sheet → cache localStorage ──
+// Đọc từ Google Sheet, cache về localStorage
 async function loadCalFromSheet() {
   try {
     var r = await api({ action: 'getCalData' });
-    if (r && r.data && Object.keys(r.data).length > 0) {
-      saveCalData(r.data); // cache về localStorage
+    if (r.data && Object.keys(r.data).length) {
+      saveCalData(r.data);
       return r.data;
     }
-  } catch(e) {
-    console.warn('loadCalFromSheet error:', e);
-  }
+  } catch(e) {}
   return null;
 }
 
-// ── Khởi tạo trang Calories ──
-// Luôn fetch từ Sheet trước → dùng làm source of truth
-// localStorage chỉ là fallback khi offline/sheet trống
+// Khởi tạo trang Calories — luôn fetch Sheet trước
 async function initCaloriesPage() {
   document.getElementById('calModeLabel').textContent = MODE_LABELS[S.mode];
-
-  // Hiện loading
   document.getElementById('calSetupStatus').innerHTML =
-    '<div class="loader"><div class="spin"></div>Đang đồng bộ dữ liệu dinh dưỡng...</div>';
+    '<div class="loader"><div class="spin"></div>Đang đồng bộ từ Google Sheet...</div>';
 
-  // Luôn fetch sheet trước (source of truth)
-  var sheetData = await loadCalFromSheet();
-
-  // Nếu sheet có data → dùng sheet (và đã cache về localStorage rồi)
-  var calData = sheetData || getCalData();
+  // Luôn fetch Sheet (source of truth) — localStorage chỉ là fallback offline
+  var calData = await loadCalFromSheet();
+  if (!calData) calData = getCalData(); // fallback localStorage
 
   if (calData && Object.keys(calData).length > 0) {
     showCalSetupDone(calData);
@@ -2188,7 +2164,6 @@ async function renderCalTable(calData) {
   }
 }
 
-var _calSelectedCode = null;
 function renderCalRows(list) {
   window._calFilteredResults = list;
   if (!list.length) {
@@ -2201,22 +2176,23 @@ function renderCalRows(list) {
     var warn  = p.missing && p.missing.length
       ? '<span title="Thiếu cal: '+p.missing.slice(0,3).join(', ')+(p.missing.length>3?'...':'')+'" style="color:var(--gold);cursor:help;margin-left:4px">⚠️</span>'
       : '';
-    return '<tr id="calrow-'+p.code+'">' +
+    return '<tr>' +
       '<td><span class="td-code">'+p.code+'</span></td>' +
+      '<td><span class="td-code">'+p.iposCode+'</span></td>' +
       '<td style="font-weight:600">'+p.name+warn+'</td>' +
       '<td><span class="badge badge-gray">'+(p.group||'—')+'</span></td>' +
-      '<td style="text-align:right;font-weight:800;font-size:13px;color:var(--brown)">'+
+      '<td style="text-align:right;font-weight:800;font-size:14px;color:var(--brown)">'+
         (p.hasData ? p.kcal.toLocaleString('vi-VN')+' kcal' : '<span style="color:var(--gray)">—</span>') +
       '</td>' +
       '<td style="text-align:center">'+badge+'</td>' +
-      '<td><button class="btn btn-secondary btn-xs" onclick="openCalDetail(\''+p.code+'\')">Chi tiết</button></td>' +
+      '<td><button class="btn btn-secondary btn-xs" onclick="showCalDetail(\''+p.code+'\')">Chi tiết</button></td>' +
     '</tr>';
   }).join('');
 
   document.getElementById('calBodyWrap').innerHTML =
     '<div class="table-wrap"><table>' +
     '<thead><tr>' +
-      '<th>Mã SP</th><th>Tên sản phẩm</th><th>Nhóm</th>' +
+      '<th>Mã SP</th><th>IPOS</th><th>Tên sản phẩm</th><th>Nhóm</th>' +
       '<th style="text-align:right">Calories</th><th style="text-align:center">Mức</th><th></th>' +
     '</tr></thead>' +
     '<tbody>'+rows+'</tbody></table></div>';
@@ -2255,11 +2231,9 @@ function filterCalTable() {
   renderCalRows(filtered);
 }
 
-// ── Slide-in panel ──
-function openCalDetail(spCode) {
+function openCalDetail() {
   document.getElementById('calDetailOverlay').style.display = 'block';
-  document.getElementById('calDetailPanel').style.display = 'flex';
-  showCalDetail(spCode);
+  document.getElementById('calDetailPanel').style.display = 'block';
 }
 function closeCalDetail() {
   document.getElementById('calDetailOverlay').style.display = 'none';
@@ -2268,6 +2242,7 @@ function closeCalDetail() {
 
 // ── Chi tiết calories 1 sản phẩm ──
 async function showCalDetail(spCode) {
+  openCalDetail();
   document.getElementById('calDetailContent').innerHTML =
     '<div class="loader" style="padding:40px 0"><div class="spin"></div>Đang tính...</div>';
 
@@ -2453,6 +2428,20 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
   document.getElementById('restoreSettingsBtn').addEventListener('click', loadSettings);
   document.getElementById('testConnBtn').addEventListener('click', testConn);
+  document.getElementById('testCalSaveBtn').addEventListener('click', async function() {
+    var el = document.getElementById('connTest');
+    el.innerHTML = '<div class="loader"><div class="spin"></div>Đang test lưu CalNVL...</div>';
+    try {
+      var r = await api({ action: 'saveCalData', calData: 'TEST_NVL:1.5', append: '0' });
+      if (r && r.success) {
+        el.innerHTML = '<div class="alert alert-ok">✅ Test lưu CalNVL thành công! GS ghi được ' + (r.count||1) + ' dòng. Giờ có thể lưu data thật.</div>';
+      } else {
+        el.innerHTML = '<div class="alert alert-err">❌ GS trả lỗi: ' + (r && r.message || JSON.stringify(r)) + '<br><small>→ Kiểm tra đã deploy GS mới chưa, và URL trong Config sheet đã được cập nhật chưa.</small></div>';
+      }
+    } catch(e) {
+      el.innerHTML = '<div class="alert alert-err">❌ Lỗi kết nối: ' + e.message + '</div>';
+    }
+  });
 
   // ----- Cost Engine -----
   document.getElementById('costInput').addEventListener('input', function(){ onCostSearch(this.value); });
