@@ -566,6 +566,7 @@ tr:hover td{background:var(--blue-xl)}
           <div class="form-group"><label class="form-label">Web App URL</label><input type="url" class="form-input" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
           <button class="btn btn-primary btn-sm" id="testConnBtn">🔗 Kiểm tra kết nối</button>
           <button class="btn btn-secondary btn-sm" id="testCalSaveBtn" style="margin-left:8px">🧪 Test lưu CalNVL</button>
+          <button class="btn btn-secondary btn-sm" id="clearCacheBtn" style="margin-left:8px" title="Xóa cache URL cũ, buộc đọc lại từ sheet Config">🗑 Xóa cache URL</button>
           <div id="connTest" style="margin-top:10px"></div>
         </div>
       </div>
@@ -581,14 +582,22 @@ tr:hover td{background:var(--blue-xl)}
       </div>
       <div id="cfgMsg" style="margin-top:12px"></div>
       <div class="card mt-3" style="margin-top:16px">
-        <div class="card-hd"><span class="card-icon">📋</span><div class="card-title">Hướng dẫn cài đặt</div></div>
+        <div class="card-hd"><span class="card-icon">📋</span><div class="card-title">Hướng dẫn cài đặt & cập nhật</div></div>
         <div class="card-body">
+          <div style="font-size:12px;font-weight:700;color:var(--blue);margin-bottom:6px">🔧 Cài đặt lần đầu:</div>
+          <ol style="padding-left:16px;line-height:2.2;font-size:13px;color:var(--gray);margin-bottom:14px">
+            <li>Mở <a href="https://docs.google.com/spreadsheets/d/12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg" target="_blank" style="color:var(--blue)">Google Sheet</a> → Extensions → Apps Script</li>
+            <li>Dán nội dung file <strong>Code.gs</strong> mới nhất → Lưu</li>
+            <li>Deploy → <strong>New deployment</strong> → Web App → Execute as: Me → Who has access: Anyone → Deploy</li>
+            <li>Copy URL vừa tạo → Dán vào sheet <strong>Config</strong> cột B dòng "Web App URL"</li>
+            <li>Vào trang này → nhập URL vào ô trên → bấm <strong>Lưu cài đặt</strong> → Kiểm tra kết nối</li>
+          </ol>
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:6px">⚠️ Khi deploy GS mới (URL thay đổi):</div>
           <ol style="padding-left:16px;line-height:2.2;font-size:13px;color:var(--gray)">
-            <li>Mở <a href="https://docs.google.com/spreadsheets/d/12h9gNsH7txvEue8KGGji3gMZ-M5AykTPzCa-KZVgegg" target="_blank" style="color:var(--blue)">Google Sheet</a></li>
-            <li>Extensions → Apps Script → Dán nội dung <strong>Code.gs</strong></li>
-            <li>Deploy → New deployment → Web App → Anyone → Copy URL</li>
-            <li>Dán URL vào sheet Config (cột B dòng "Web App URL") → Lưu</li>
-            <li>Nhập Anthropic API Key để dùng AI Analysis</li>
+            <li>Cập nhật URL mới vào sheet Config cột B</li>
+            <li>Bấm nút <strong>"🗑 Xóa cache URL"</strong> ở trên để xóa URL cũ</li>
+            <li>Dán URL mới vào ô Web App URL → <strong>Lưu cài đặt</strong></li>
+            <li>Bấm <strong>"🧪 Test lưu CalNVL"</strong> để xác nhận GS mới hoạt động</li>
           </ol>
         </div>
       </div>
@@ -715,12 +724,14 @@ var MODE_SHORTS = { DC: 'ĐC', TD: 'TĐ', TH: 'TH' };
 // BOOTSTRAP CONFIG — đọc sheet Config qua CSV public
 // ============================================================
 async function bootstrapConfig() {
-  // Check localStorage cache trước
-  var cached = localStorage.getItem('pt_config_v2');
-  if (cached) {
-    try {
-      var obj = JSON.parse(cached);
-      if (obj.opsUrl) {
+  // Cache có TTL 1 giờ — sau đó tự fetch lại để lấy URL mới nhất
+  var cached = null;
+  try {
+    var raw = localStorage.getItem('pt_config_v2');
+    if (raw) {
+      var obj = JSON.parse(raw);
+      var age = Date.now() - (obj.ts || 0);
+      if (obj.opsUrl && age < 3600000) { // 1 giờ
         C.opsUrl = obj.opsUrl;
         C.anthropicKey = obj.anthropicKey || '';
         S.url = C.opsUrl;
@@ -728,8 +739,8 @@ async function bootstrapConfig() {
         updateConnDot();
         return;
       }
-    } catch(e) {}
-  }
+    }
+  } catch(e) {}
   // Fetch từ sheet Config
   try {
     var csvUrl = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&sheet=Config';
@@ -747,8 +758,12 @@ async function bootstrapConfig() {
     if (C.opsUrl) {
       S.url = C.opsUrl;
       S.apiKey = C.anthropicKey;
-      // Cache
-      localStorage.setItem('pt_config_v2', JSON.stringify({ opsUrl: C.opsUrl, anthropicKey: C.anthropicKey, sheetId: C.sheetId }));
+      localStorage.setItem('pt_config_v2', JSON.stringify({
+        opsUrl: C.opsUrl,
+        anthropicKey: C.anthropicKey,
+        sheetId: C.sheetId,
+        ts: Date.now() // timestamp để kiểm tra TTL
+      }));
       updateConnDot();
     }
   } catch(e) {
@@ -2428,6 +2443,13 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
   document.getElementById('restoreSettingsBtn').addEventListener('click', loadSettings);
   document.getElementById('testConnBtn').addEventListener('click', testConn);
+  document.getElementById('clearCacheBtn').addEventListener('click', function() {
+    localStorage.removeItem('pt_config_v2');
+    bootstrapConfig().then(function() {
+      document.getElementById('connTest').innerHTML =
+        '<div class="alert alert-ok">✅ Đã xóa cache URL cũ và tải lại từ sheet Config.<br>URL hiện tại: <code style="font-size:11px">' + (S.url || 'chưa có') + '</code></div>';
+    });
+  });
   document.getElementById('testCalSaveBtn').addEventListener('click', async function() {
     var el = document.getElementById('connTest');
     el.innerHTML = '<div class="loader"><div class="spin"></div>Đang test lưu CalNVL...</div>';
