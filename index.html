@@ -564,6 +564,9 @@ tr:hover td{background:var(--blue-xl)}
         <div class="card-hd"><span class="card-icon">🔌</span><div class="card-title">Apps Script</div></div>
         <div class="card-body">
           <div class="form-group"><label class="form-label">Web App URL</label><input type="url" class="form-input" id="cfgUrl" placeholder="https://script.google.com/macros/s/.../exec"></div>
+          <div id="activeUrlDisplay" style="font-size:11px;color:var(--gray);margin-bottom:10px;padding:6px 10px;background:var(--gray-l);border-radius:var(--rs)">
+            URL đang dùng: <span id="activeUrlSpan" style="color:var(--blue);font-family:monospace;font-size:10px;word-break:break-all">đang tải...</span>
+          </div>
           <button class="btn btn-primary btn-sm" id="testConnBtn">🔗 Kiểm tra kết nối</button>
           <button class="btn btn-secondary btn-sm" id="testCalSaveBtn" style="margin-left:8px">🧪 Test lưu CalNVL</button>
           <button class="btn btn-secondary btn-sm" id="clearCacheBtn" style="margin-left:8px" title="Xóa cache URL cũ, buộc đọc lại từ sheet Config">🗑 Xóa cache URL</button>
@@ -959,8 +962,14 @@ async function testConn() {
 // ============================================================
 // API
 // ============================================================
+// Lấy URL đang active — ưu tiên: manual settings > config sheet
+function getActiveUrl() {
+  return localStorage.getItem('pt_url') || C.opsUrl || S.url || '';
+}
+
 async function api(params) {
-  if (!S.url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt.');
+  var url = getActiveUrl();
+  if (!url) throw new Error('Chưa cấu hình Apps Script URL. Vào Cài đặt → dán URL → Lưu cài đặt.');
   var qs = new URLSearchParams();
   Object.keys(params).forEach(function(k) {
     var v = params[k];
@@ -969,10 +978,16 @@ async function api(params) {
     else qs.set(k, String(v));
   });
   qs.set('mode', S.mode);
-  var res = await fetch(S.url + '?' + qs.toString(), { method: 'GET', redirect: 'follow' });
+  var res = await fetch(url + '?' + qs.toString(), { method: 'GET', redirect: 'follow' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   var text = await res.text();
-  try { return JSON.parse(text); } catch(e) { throw new Error('Invalid response from server'); }
+  var json;
+  try { json = JSON.parse(text); } catch(e) { throw new Error('GS trả về không phải JSON: ' + text.slice(0,100)); }
+  // Phát hiện GS cũ / sai version
+  if (json && json.error && String(json.error).indexOf('Unknown') !== -1) {
+    throw new Error(JSON.stringify(json) + ' → URL đang dùng: ' + url.slice(0,60) + '...');
+  }
+  return json;
 }
 
 // ============================================================
@@ -1011,7 +1026,12 @@ function nav(pid) {
   else if (pid==='products') loadProducts();
   else if (pid==='nvl') loadNVL();
   else if (pid==='cost') document.getElementById('costModeLabel').textContent = MODE_LABELS[S.mode];
-  else if (pid==='settings') loadSettings();
+  else if (pid==='settings') {
+    loadSettings();
+    // Hiện URL đang active để xác minh
+    var el = document.getElementById('activeUrlSpan');
+    if (el) el.textContent = getActiveUrl() || 'chưa cấu hình';
+  }
   else if (pid==='calories') initCaloriesPage();
 }
 
@@ -2443,12 +2463,35 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
   document.getElementById('restoreSettingsBtn').addEventListener('click', loadSettings);
   document.getElementById('testConnBtn').addEventListener('click', testConn);
+
   document.getElementById('clearCacheBtn').addEventListener('click', function() {
     localStorage.removeItem('pt_config_v2');
+    var manualUrl = localStorage.getItem('pt_url') || '';
     bootstrapConfig().then(function() {
+      var activeUrl = getActiveUrl();
       document.getElementById('connTest').innerHTML =
-        '<div class="alert alert-ok">✅ Đã xóa cache URL cũ và tải lại từ sheet Config.<br>URL hiện tại: <code style="font-size:11px">' + (S.url || 'chưa có') + '</code></div>';
+        '<div class="alert alert-ok">✅ Đã xóa cache.<br>' +
+        '<b>URL manual (pt_url):</b> <code style="font-size:10px;word-break:break-all">' + (manualUrl||'chưa có') + '</code><br>' +
+        '<b>URL config sheet:</b> <code style="font-size:10px;word-break:break-all">' + (C.opsUrl||'chưa có') + '</code><br>' +
+        '<b>URL đang dùng:</b> <code style="font-size:10px;word-break:break-all;color:var(--blue)">' + (activeUrl||'CHƯA CÓ') + '</code>' +
+        '</div>';
     });
+  });
+
+  document.getElementById('testCalSaveBtn').addEventListener('click', async function() {
+    var el = document.getElementById('connTest');
+    var activeUrl = getActiveUrl();
+    el.innerHTML = '<div class="loader"><div class="spin"></div>Đang test... URL: <code style="font-size:10px">' + (activeUrl||'chưa có').slice(0,50) + '...</code></div>';
+    try {
+      var r = await api({ action: 'saveCalData', calData: 'TEST_NVL:1.5', append: '0' });
+      if (r && r.success) {
+        el.innerHTML = '<div class="alert alert-ok">✅ Test lưu CalNVL thành công! Ghi ' + (r.count||1) + ' dòng vào sheet.<br>URL GS đang dùng: <code style="font-size:10px;word-break:break-all">' + activeUrl.slice(0,80) + '</code></div>';
+      } else {
+        el.innerHTML = '<div class="alert alert-err">❌ GS phản hồi lỗi: <code>' + JSON.stringify(r) + '</code><br>URL đang dùng: <code style="font-size:10px;word-break:break-all">' + activeUrl + '</code><br><b>→ URL này trỏ đến GS cũ. Dán URL GS mới vào ô Web App URL → Lưu cài đặt → Test lại.</b></div>';
+      }
+    } catch(e) {
+      el.innerHTML = '<div class="alert alert-err">❌ ' + e.message + '<br>URL đang dùng: <code style="font-size:10px;word-break:break-all">' + activeUrl + '</code></div>';
+    }
   });
   document.getElementById('testCalSaveBtn').addEventListener('click', async function() {
     var el = document.getElementById('connTest');
