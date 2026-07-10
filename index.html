@@ -1900,9 +1900,11 @@ function showCalSetupDone(calData) {
   var count = Object.keys(calData).length;
   document.getElementById('calSetupStatus').innerHTML =
     '<div class="alert alert-ok" style="margin-bottom:12px">✅ Đã có dữ liệu dinh dưỡng cho <strong>'+count+' NVL</strong>. Có thể <em>chỉnh sửa tay</em>, <em>cho AI phân tích lại</em>, hoặc <em>Reset</em> để làm lại từ đầu.</div>';
-  document.getElementById('editCalDataBtn').style.display = 'inline-flex';
+document.getElementById('editCalDataBtn').style.display = 'inline-flex';
   document.getElementById('resetCalBtn').style.display = 'inline-flex';
-  document.getElementById('runCalAIBtn').style.display = 'inline-flex';
+  // Chỉ hiện nút AI nếu là Owner
+  var isOwner = TX && (TX.role === 'Owner' || TX.email === ADMIN_EMAIL);
+  document.getElementById('runCalAIBtn').style.display = isOwner ? 'inline-flex' : 'none';
   document.getElementById('runCalAIBtn').textContent = '🤖 AI phân tích lại';
   document.getElementById('calNVLTable').innerHTML = '';
   document.getElementById('calSaveRow').style.display = 'none';
