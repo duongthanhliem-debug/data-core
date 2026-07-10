@@ -625,7 +625,7 @@ tr:hover td{background:var(--blue-xl)}
       <div class="card-body">
         <div id="calSetupStatus"></div>
         <div class="btn-group">
-          <button class="btn btn-primary" id="runCalAIBtn">🤖 AI điền Calories NVL</button>
+          <button class="btn btn-primary" id="runCalAIBtn" style="display:none">🤖 AI điền Calories NVL</button>
           <button class="btn btn-secondary" id="editCalDataBtn" style="display:none">✏️ Chỉnh sửa dữ liệu</button>
           <button class="btn btn-secondary" id="resetCalBtn" style="display:none">🗑 Reset dữ liệu</button>
         </div>
@@ -837,7 +837,7 @@ async function doLogin() {
     var matKhau   = (found[14] || '').replace(/^"|"$/g, '').trim();
     var hoTen     = (found[1] || found[2] || '').replace(/^"|"$/g, '').trim();
 
-    if (phanQuyen !== 'System') {
+    if (phanQuyen !== 'System' && phanQuyen !== 'Owner') {
       showLoginErr('Tài khoản không có quyền truy cập hệ thống này');
       return;
     }
@@ -880,7 +880,7 @@ function onLoginSuccess() {
   document.getElementById('sidebarLogoutBtn').style.display = 'flex';
 
   // Hiện nav settings chỉ với admin
-  if (TX.email === ADMIN_EMAIL) {
+  if (TX.email === ADMIN_EMAIL || TX.role === 'Owner') {
     document.getElementById('nav-settings').style.display = 'flex';
   }
 
@@ -2536,6 +2536,9 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('runAIResearchBtn').addEventListener('click', runAIResearch);
 
   // ----- Calories -----
+  // Ẩn/hiện nút AI Calories theo role Owner
+var isOwner = TX && (TX.role === 'Owner' || TX.email === ADMIN_EMAIL);
+document.getElementById('runCalAIBtn').style.display = isOwner ? 'inline-flex' : 'none';
   document.getElementById('runCalAIBtn').addEventListener('click', runCalAI);
   document.getElementById('editCalDataBtn').addEventListener('click', editCalData);
   document.getElementById('resetCalBtn').addEventListener('click', function() {
